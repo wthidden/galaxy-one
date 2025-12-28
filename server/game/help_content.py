@@ -10,7 +10,8 @@ HELP_TOPICS = {
     <div class="help-category">
         <span class="help-label">BASIC</span>
         <code>HELP [topic]</code> Show help | <code>TURN</code> End turn<br>
-        <code>JOIN &lt;name&gt; [type]</code> Join game
+        <code>JOIN &lt;name&gt; [type]</code> Join game<br>
+        <code>SAY &lt;message&gt;</code> or <code>CHAT &lt;message&gt;</code> Send chat message
     </div>
     <div class="help-category">
         <span class="help-label">MOVE</span>

@@ -63,6 +63,11 @@ async def handle_command_message(player, data):
         await handle_turn(player)
         return
 
+    # SAY command - chat with other players
+    if cmd == "SAY" or cmd == "CHAT":
+        await handle_say(player, command_text, parts)
+        return
+
     # Parse and validate command
     command = parse_command(player, command_text, game_state)
 
@@ -301,3 +306,36 @@ async def handle_help(player, parts):
 
     # Send help as event message (supports HTML)
     await sender.send_event(player, help_text, event_type='help')
+
+
+async def handle_say(player, full_command, parts):
+    """
+    Handle SAY/CHAT command - send a message to all players.
+
+    Args:
+        player: The player sending the message
+        full_command: Full command text (e.g., "SAY Hello everyone!")
+        parts: Command parts
+    """
+    sender = get_message_sender()
+
+    # Extract message text (everything after SAY or CHAT)
+    if len(parts) < 2:
+        await sender.send_error(player, "Usage: SAY <message> or CHAT <message>")
+        return
+
+    # Get the message (everything after the command)
+    cmd_word = parts[0]
+    message_start = full_command.find(cmd_word) + len(cmd_word)
+    message = full_command[message_start:].strip()
+
+    if not message:
+        await sender.send_error(player, "Usage: SAY <message> or CHAT <message>")
+        return
+
+    # Broadcast message to all players
+    game_state = get_game_state()
+    chat_text = f"<strong>{player.name}:</strong> {message}"
+
+    for p in game_state.players.values():
+        await sender.send_event(p, chat_text, event_type='chat')

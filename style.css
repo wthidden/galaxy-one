@@ -988,6 +988,23 @@ canvas {
     line-height: 1.6;
 }
 
+/* Chat message styling */
+.event-chat {
+    background-color: rgba(139, 195, 74, 0.1);
+    border-left: 3px solid #8bc34a;
+    padding: 8px 12px;
+    margin: 6px 0;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.event-chat strong {
+    color: #8bc34a;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
 /* Help header - main title */
 .help-header {
     font-size: 16px;
