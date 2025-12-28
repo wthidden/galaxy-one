@@ -1,0 +1,1127 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a1a;
+    color: #eee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Login Overlay */
+#login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#login-box {
+    background-color: #2d2d2d;
+    padding: 40px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    border: 1px solid #444;
+    width: 400px;
+}
+
+#login-box h1 {
+    margin-top: 0;
+    color: #4da6ff;
+    font-size: 36px;
+}
+
+.login-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+#player-name-input, #character-type-select, #score-vote-input {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #333;
+    color: #fff;
+}
+
+#join-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+}
+
+#join-btn:hover {
+    background-color: #45a049;
+}
+
+/* Game Container */
+#game-container {
+    background-color: #2d2d2d;
+    padding: 20px;
+    border-radius: 8px;
+    width: 95vw; /* Use viewport width */
+    height: 95vh; /* Use viewport height */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+#header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #4da6ff;
+}
+
+#connection-status {
+    font-size: 14px;
+    color: #aaa;
+}
+
+#main-content {
+    display: flex;
+    flex-grow: 1;
+    gap: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+#center-panel {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#status-panel {
+    background-color: #2d2d2d;
+    border: 1px solid #4da6ff;
+    padding: 12px;
+    margin-bottom: 10px;
+    min-height: 40px;
+    font-size: 14px;
+    color: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#status-panel strong {
+    color: #4da6ff;
+    font-weight: 600;
+}
+
+.status-item {
+    text-align: center;
+}
+
+.status-label {
+    font-size: 0.8em;
+    color: #aaa;
+    display: block;
+}
+
+.status-value {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+#canvas-container {
+    flex-grow: 1;
+    background-color: #000;
+    border: 1px solid #444;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    background-color: #050505;
+}
+
+#event-log-container {
+    height: 150px;
+    background-color: #333;
+    border: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+}
+
+#event-log-container h3 {
+    margin: 0;
+    padding: 5px 10px;
+    background-color: #444;
+    font-size: 0.9em;
+    color: #ddd;
+    border-bottom: 1px solid #555;
+}
+
+#event-log {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 0.9em;
+    color: #ccc;
+    font-family: monospace;
+    white-space: pre-wrap; /* Preserve whitespace */
+}
+
+.event-message {
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #444;
+}
+
+.event-combat { color: #f44336; }
+.event-capture { color: #4caf50; }
+.event-ambush { color: #ff9800; }
+
+/* Markdown Styles */
+.md-bold { font-weight: bold; color: #fff; }
+.md-code {
+    background-color: #222;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    color: #aaddff;
+}
+.md-list { margin: 5px 0; padding-left: 20px; }
+.md-list-item { margin-bottom: 2px; }
+
+.sidebar {
+    width: 300px;
+    background-color: #333;
+    border: 1px solid #444;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#left-sidebar {
+    flex-direction: row;
+    width: 500px;
+}
+
+#left-sidebar .sidebar-section {
+    flex: 1;
+    min-height: 0;
+}
+
+.sidebar-column {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    min-width: 0;
+}
+
+.sidebar-section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sidebar-section h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+    color: #ddd;
+    margin-bottom: 5px;
+}
+
+.scrollable-list {
+    overflow-y: auto;
+    font-size: 0.9em;
+    padding-right: 15px; /* Add padding for scrollbar */
+}
+
+/* Specific Sidebar Layout */
+#scoreboard-section {
+    height: 150px;
+    flex-shrink: 0;
+}
+
+#actions-section {
+    display: none; /* Hidden by default - use HELP command instead */
+    margin-bottom: 5px;
+    padding: 5px;
+    background-color: #333;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+#action-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 0.9em;
+    color: #aaa;
+}
+
+.action-btn {
+    background-color: #555;
+    border: 1px solid #777;
+    color: #eee;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.action-btn:hover {
+    background-color: #666;
+}
+
+#queued-orders-section {
+    flex-grow: 1;
+}
+
+#world-info-section {
+    height: 250px;
+    flex-shrink: 0;
+    border-top: 1px solid #555;
+    padding-top: 10px;
+}
+
+#world-info {
+    padding-right: 15px; /* Add padding for scrollbar */
+}
+
+.fleet-item, .world-item, .order-item, .score-item {
+    background-color: #444;
+    padding: 8px;
+    margin-bottom: 5px;
+    border-radius: 3px;
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    border-left: 3px solid #aaa;
+}
+
+.fleet-item, .world-item {
+    cursor: pointer;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cancel-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8em;
+}
+
+.cancel-btn:hover {
+    background-color: #d32f2f;
+}
+
+.fleet-item {
+    border-left: 3px solid #ffeb3b;
+}
+
+.world-item {
+    border-left: 3px solid #4da6ff;
+}
+
+.world-item.visiting {
+    border-left: 3px solid #aaa;
+}
+
+.fleet-item:hover, .world-item:hover {
+    background-color: #555;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85em;
+    color: #ccc;
+}
+
+#controls-container {
+    margin-bottom: 10px;
+}
+
+#command-hint {
+    height: 20px;
+    font-size: 0.9em;
+    color: #4da6ff;
+    margin-bottom: 5px;
+    padding-left: 5px;
+}
+
+#controls {
+    display: flex;
+    gap: 10px;
+}
+
+#command-input {
+    flex-grow: 1;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+#send-btn, #end-turn-btn, #help-btn {
+    padding: 10px 20px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#send-btn {
+    background-color: #007bff;
+}
+
+#send-btn:hover {
+    background-color: #0056b3;
+}
+
+#help-btn {
+    background-color: #6c757d;
+    padding: 10px 15px;
+    font-size: 16px;
+    margin-right: 5px;
+}
+
+#help-btn:hover {
+    background-color: #5a6268;
+}
+
+#log {
+    height: 80px;
+    overflow-y: auto;
+    border: 1px solid #444;
+    background-color: #222;
+    padding: 10px;
+    font-size: 0.9em;
+    color: #ccc;
+    font-family: monospace;
+    border-radius: 4px;
+}
+
+#log div {
+    margin-bottom: 4px;
+}
+
+/* New UI Panels Styles */
+.scoreboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.scoreboard-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    background-color: #444;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.scoreboard-entry.me {
+    background-color: #4da6ff;
+    color: #000;
+    font-weight: bold;
+}
+
+.scoreboard-entry .rank {
+    font-weight: bold;
+    min-width: 30px;
+}
+
+.scoreboard-entry .ready-indicator {
+    font-size: 1.1em;
+}
+
+.scoreboard-entry .player-name {
+    flex-grow: 1;
+}
+
+.scoreboard-entry .score {
+    font-weight: bold;
+}
+
+.world-list, .fleet-list, .orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.world-entry, .fleet-entry {
+    background-color: #444;
+    padding: 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.world-entry:hover, .fleet-entry:hover {
+    background-color: #555;
+}
+
+.world-header, .fleet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.world-id, .fleet-id {
+    color: #4da6ff;
+}
+
+.key-icon {
+    font-size: 1.1em;
+}
+
+.world-stats, .fleet-stats {
+    display: flex;
+    gap: 10px;
+    font-size: 0.85em;
+    color: #ccc;
+}
+
+.fleet-location {
+    font-size: 0.85em;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+/* Fleet world grouping */
+.fleet-world-group {
+    margin-bottom: 12px;
+}
+
+.fleet-world-group .world-header {
+    background-color: #333;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #aaa;
+    border-left: 3px solid #555;
+}
+
+.fleet-world-group.conflict .world-header {
+    background-color: #442222;
+    color: #ffaa77;
+    border-left-color: #ff4444;
+}
+
+.fleet-world-group .fleet-entry {
+    margin-left: 8px;
+    margin-bottom: 4px;
+}
+
+.fleet-entry.empty-fleet {
+    background-color: #3a3a3a;
+    opacity: 0.7;
+}
+
+.fleet-entry.empty-fleet:hover {
+    background-color: #454545;
+    opacity: 0.8;
+}
+
+.fleet-entry .empty-icon {
+    color: #999;
+    margin-left: 4px;
+    font-size: 12px;
+}
+
+.fleet-entry .artifact-list {
+    color: #ffd700;
+    margin-left: 6px;
+    font-size: 12px;
+}
+
+.order-entry {
+    background-color: #444;
+    padding: 8px;
+    border-radius: 3px;
+    margin-bottom: 4px;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.order-type {
+    font-weight: bold;
+    color: #4da6ff;
+}
+
+.order-description {
+    font-size: 0.85em;
+    color: #ccc;
+}
+
+/* Order type specific styles */
+.order-entry.order-move {
+    border-left: 3px solid #2196F3;
+}
+
+.order-entry.order-build,
+.order-entry.order-build-iships,
+.order-entry.order-build-pships,
+.order-entry.order-build-industry,
+.order-entry.order-build-limit,
+.order-entry.order-build-robots {
+    border-left: 3px solid #4CAF50;
+}
+
+.order-entry.order-migrate {
+    border-left: 3px solid #00BCD4;
+}
+
+.order-entry.order-load,
+.order-entry.order-unload {
+    border-left: 3px solid #00BCD4;
+}
+
+.order-entry.order-transfer {
+    border-left: 3px solid #FF9800;
+}
+
+.order-entry.order-fire-fleet,
+.order-entry.order-fire-world {
+    border-left: 3px solid #F44336;
+}
+
+.order-entry.order-ambush {
+    border-left: 3px solid #9C27B0;
+}
+
+/* Order element highlighting */
+.order-icon {
+    font-size: 1.2em;
+    margin-right: 4px;
+}
+
+.fleet-ref {
+    color: #ffeb3b;
+    font-weight: bold;
+    background-color: rgba(255, 235, 59, 0.1);
+    padding: 1px 3px;
+    border-radius: 2px;
+}
+
+.world-ref {
+    color: #4da6ff;
+    font-weight: bold;
+    background-color: rgba(77, 166, 255, 0.1);
+    padding: 1px 3px;
+    border-radius: 2px;
+}
+
+.amount {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.resource-type {
+    color: #aaa;
+    font-size: 0.9em;
+}
+
+.target-type {
+    color: #FF9800;
+    font-weight: bold;
+}
+
+.world-info-panel {
+    color: #eee;
+}
+
+.info-header h4 {
+    margin: 0 0 8px 0;
+    color: #4da6ff;
+}
+
+.info-header .owner {
+    font-size: 0.9em;
+    color: #aaa;
+    margin-bottom: 8px;
+}
+
+.info-section {
+    margin-bottom: 12px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.9em;
+}
+
+.section-label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #4da6ff;
+}
+
+.connections-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.connection-tag {
+    background-color: #555;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.fleet-group {
+    font-size: 0.85em;
+    color: #aaa;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+.fleet-tag {
+    background-color: #555;
+    padding: 4px 8px;
+    border-radius: 3px;
+    margin: 2px 0;
+    font-size: 0.85em;
+}
+
+.fleet-tag.hostile {
+    background-color: #f44336;
+}
+
+/* WorldInfo - Secondary/calculated stats */
+.info-row.info-secondary {
+    color: #aaa;
+    font-size: 0.85em;
+    padding-left: 8px;
+}
+
+/* WorldInfo - Warning section */
+.info-section.info-warning {
+    background-color: rgba(255, 87, 34, 0.2);
+    padding: 8px;
+    border-radius: 4px;
+    border-left: 3px solid #ff5722;
+}
+
+.warning-text {
+    color: #ff9800;
+    font-weight: bold;
+    font-size: 0.9em;
+    padding: 2px 0;
+}
+
+/* WorldInfo - Artifacts */
+.artifacts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.artifact-item {
+    background-color: rgba(255, 215, 0, 0.15);
+    padding: 4px 8px;
+    border-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.artifact-item .artifact-id {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 14px;
+    margin-right: 8px;
+}
+
+.artifact-item .artifact-name {
+    color: #ddd;
+    font-size: 12px;
+    flex: 1;
+}
+
+/* FleetInfo Panel */
+.fleet-info-panel {
+    color: #eee;
+}
+
+.info-hint {
+    margin-top: 8px;
+    padding: 6px;
+    background-color: rgba(77, 166, 255, 0.1);
+    border-left: 3px solid #4da6ff;
+    border-radius: 3px;
+    font-size: 0.85em;
+    color: #aaa;
+}
+
+.command-hints {
+    font-size: 0.85em;
+    line-height: 1.6;
+}
+
+.command-hints code {
+    background-color: #444;
+    padding: 2px 4px;
+    border-radius: 2px;
+    color: #ffd700;
+    font-family: monospace;
+}
+
+.action-list-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.action-title {
+    font-weight: bold;
+    color: #4da6ff;
+    margin-bottom: 8px;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.action-btn {
+    background-color: #555;
+    border: 1px solid #777;
+    color: #eee;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.action-btn:hover {
+    background-color: #666;
+    border-color: #888;
+}
+
+.action-label {
+    font-weight: bold;
+}
+
+.action-description {
+    font-size: 0.85em;
+    color: #ccc;
+}
+
+.hint-message {
+    padding: 4px 8px;
+    background-color: #2a2a2a;
+    border-left: 3px solid #4da6ff;
+    border-radius: 2px;
+}
+
+.empty-message {
+    color: #888;
+    font-style: italic;
+    padding: 8px;
+    text-align: center;
+}
+
+/* Command Parser Styles */
+
+/* Command Suggestions Dropdown */
+.command-suggestions {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 4px 4px 0 0;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.suggestion-list {
+    padding: 0;
+    margin: 0;
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.15s;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover,
+.suggestion-item.selected {
+    background: #3a3a3a;
+}
+
+.suggestion-item.danger {
+    border-left: 3px solid #e91e63;
+}
+
+.suggestion-text {
+    font-weight: bold;
+    color: #4CAF50;
+    font-family: monospace;
+}
+
+.suggestion-description {
+    font-size: 0.9em;
+    color: #999;
+}
+
+/* Command Hints */
+.hint-errors,
+.hint-validation {
+    margin: 4px 0;
+}
+
+.hint-errors .error,
+.hint-validation .error {
+    color: #f44336;
+    margin: 2px 0;
+    padding: 2px 4px;
+}
+
+.hint-validation .warning {
+    color: #ff9800;
+    margin: 2px 0;
+    padding: 2px 4px;
+}
+
+.hint-success {
+    color: #4CAF50;
+    margin: 4px 0;
+    padding: 2px 4px;
+}
+
+.suggestions-text {
+    color: #2196F3;
+    margin: 4px 0;
+    padding: 2px 4px;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+/* Controls section positioning fix */
+#controls {
+    position: relative;
+}
+
+/* ========================================
+   Help System Styling
+   ======================================== */
+
+/* Help event messages in event log */
+.event-help {
+    background-color: rgba(77, 166, 255, 0.1);
+    border-left: 3px solid #4da6ff;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* Help header - main title */
+.help-header {
+    font-size: 16px;
+    font-weight: bold;
+    color: #4da6ff;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #4da6ff;
+    letter-spacing: 0.5px;
+}
+
+/* Help intro - welcoming text */
+.help-intro {
+    color: #aaa;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+/* Help section - main container */
+.help-section {
+    margin: 8px 0;
+}
+
+/* Help category - groups related commands */
+.help-category {
+    margin: 10px 0;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 3px;
+}
+
+/* Help label - category name */
+.help-label {
+    display: inline-block;
+    font-weight: bold;
+    color: #ffd700;
+    min-width: 90px;
+    margin-right: 8px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+/* Help example - command examples */
+.help-example {
+    margin: 8px 0;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+/* Help description - explains what command does */
+.help-desc {
+    color: #bbb;
+    font-size: 12px;
+}
+
+/* Help note - important information */
+.help-note {
+    margin: 10px 0;
+    padding: 8px;
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 3px solid #ffc107;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.help-note strong {
+    color: #ffc107;
+}
+
+/* Help error - when topic not found */
+.help-error {
+    color: #f44336;
+    font-weight: bold;
+    margin: 8px 0;
+}
+
+/* Help footer - additional info at bottom */
+.help-footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #444;
+    color: #888;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Help topics list */
+.help-topics {
+    margin: 10px 0;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+/* Help character types */
+.help-character {
+    margin: 6px 0;
+    padding: 6px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 3px;
+}
+
+.char-name {
+    font-weight: bold;
+    color: #4da6ff;
+    margin-right: 8px;
+}
+
+/* Help context - shows current selection info */
+.help-context {
+    margin: 8px 0;
+    padding: 8px;
+    background-color: rgba(77, 166, 255, 0.15);
+    border-radius: 3px;
+    border-left: 3px solid #4da6ff;
+    font-size: 12px;
+}
+
+/* Code formatting in help */
+.event-help code {
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #4da6ff;
+    white-space: nowrap;
+}
+
+/* Strong text in help */
+.event-help strong {
+    color: #fff;
+    font-weight: 600;
+}

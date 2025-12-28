@@ -1,0 +1,130 @@
+"""
+StarWeb Game Server - Main Entry Point
+
+Modular architecture with:
+- Event-driven communication
+- Clean WebSocket management
+- Separated game mechanics
+- Delta updates for efficiency
+"""
+import asyncio
+import websockets
+import http.server
+import socketserver
+import threading
+import os
+import logging
+import time
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Import core systems
+from .websocket_handler import get_websocket_handler
+from .message_router import get_message_router
+from .game.state import get_game_state
+from .game.command_handlers import handle_command_message
+from .events.handlers import register_all_handlers
+
+
+def run_http_server():
+    """Run HTTP server for serving static files."""
+    PORT = 8000
+
+    # Change to parent directory to serve files
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(parent_dir)
+
+    Handler = http.server.SimpleHTTPRequestHandler
+    socketserver.TCPServer.allow_reuse_address = True
+
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        logger.info(f"HTTP Server serving at http://0.0.0.0:{PORT}")
+        httpd.serve_forever()
+
+
+async def timer_loop():
+    """
+    Main game timer loop.
+    - Sends timer ticks every second
+    - Processes turns when time expires
+    """
+    from .game.turn_processor import process_turn
+
+    ws_handler = get_websocket_handler()
+    game_state = get_game_state()
+
+    logger.info("Timer loop started")
+
+    while True:
+        await asyncio.sleep(1)
+
+        if time.time() >= game_state.turn_end_time:
+            # Time expired - process turn
+            logger.info("Turn timer expired, processing turn...")
+            await process_turn()
+        else:
+            # Send timer tick to all players
+            try:
+                await ws_handler.send_timer_tick_to_all()
+            except Exception as e:
+                logger.error(f"Error sending timer tick: {e}")
+
+
+async def main():
+    """
+    Main server initialization and startup.
+    """
+    logger.info("="*60)
+    logger.info("StarWeb Game Server Starting...")
+    logger.info("="*60)
+
+    # Initialize game state
+    game_state = get_game_state()
+    logger.info(f"Initialized game map with {len(game_state.worlds)} worlds")
+    logger.info(f"Created {len(game_state.fleets)} neutral fleets")
+    logger.info(f"Placed {len(game_state.artifacts)} artifacts")
+
+    # Register message handlers
+    logger.info("Registering message handlers...")
+    message_router = get_message_router()
+    message_router.register_handler("command", handle_command_message)
+
+    # Register event handlers
+    logger.info("Registering event handlers...")
+    register_all_handlers()
+
+    # Start HTTP server in background thread
+    logger.info("Starting HTTP server...")
+    http_thread = threading.Thread(
+        target=run_http_server,
+        daemon=True
+    )
+    http_thread.start()
+
+    # Start timer loop
+    logger.info("Starting game timer...")
+    asyncio.create_task(timer_loop())
+
+    # Start WebSocket server
+    ws_handler = get_websocket_handler()
+    logger.info("Starting WebSocket server on ws://0.0.0.0:8765")
+    logger.info("="*60)
+    logger.info("Server ready! Players can connect.")
+    logger.info("="*60)
+
+    async with websockets.serve(ws_handler.handle_connection, "0.0.0.0", 8765):
+        await asyncio.Future()  # Run forever
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("\nServer stopped by user.")
+    except Exception as e:
+        logger.error(f"Server error: {e}", exc_info=True)

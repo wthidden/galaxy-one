@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StarWeb Game</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Overlay -->
+    <div id="login-overlay">
+        <div id="login-box">
+            <h1>StarWeb</h1>
+            <p>Enter your name and choose your path:</p>
+            <div class="login-inputs">
+                <input type="text" id="player-name-input" placeholder="Player Name" autofocus>
+                <select id="character-type-select">
+                    <option value="Empire Builder">Empire Builder</option>
+                    <option value="Merchant">Merchant</option>
+                    <option value="Pirate">Pirate</option>
+                    <option value="Artifact Collector">Artifact Collector</option>
+                    <option value="Berserker">Berserker</option>
+                    <option value="Apostle">Apostle</option>
+                </select>
+                <input type="number" id="score-vote-input" placeholder="Suggest End Score (e.g., 8000)" value="8000">
+            </div>
+            <button id="join-btn">Join Game</button>
+        </div>
+    </div>
+
+    <div id="game-container" style="display: none;">
+        <div id="header">
+            <h1>StarWeb</h1>
+            <div id="timer-display">Turn 0 | 0:00 | 0/0 ready</div>
+            <div id="connection-status">Connecting...</div>
+        </div>
+        <div id="status-panel">Hover over a world to see details</div>
+        <div id="main-content">
+            <div id="left-sidebar" class="sidebar">
+                <div id="scoreboard-section" class="sidebar-section">
+                    <h3>Scoreboard</h3>
+                    <div id="scoreboard" class="scrollable-list"></div>
+                </div>
+                <div id="my-worlds-section" class="sidebar-section flex-grow">
+                    <h3>My Worlds</h3>
+                    <div id="world-list" class="scrollable-list"></div>
+                </div>
+                <div id="my-fleets-section" class="sidebar-section flex-grow">
+                    <h3>My Fleets</h3>
+                    <div id="fleet-list" class="scrollable-list"></div>
+                </div>
+            </div>
+            <div id="center-panel">
+                <div id="canvas-container">
+                    <canvas id="game-canvas"></canvas>
+                </div>
+                <div id="event-log-container">
+                    <h3>Events</h3>
+                    <div id="event-log"></div>
+                </div>
+            </div>
+            <div id="right-sidebar" class="sidebar">
+                <div id="queued-orders-section" class="sidebar-section flex-grow">
+                    <h3>Orders This Turn</h3>
+                    <div id="queued-orders" class="scrollable-list"></div>
+                </div>
+                <div id="selection-info-section" class="sidebar-section fixed-bottom">
+                    <h3 id="selection-info-title">Selection Info</h3>
+                    <div id="selection-info" class="scrollable-list">Click a world or fleet to see details</div>
+                </div>
+            </div>
+        </div>
+        <div id="controls-container">
+            <div id="actions-section">
+                <div id="action-list">Select an item to see actions.</div>
+            </div>
+            <div id="command-hint"></div>
+            <div id="controls">
+                <input type="text" id="command-input" placeholder="Enter command (e.g., F1W2, HELP, TURN)">
+                <button id="help-btn" title="Show help">?</button>
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+        <div id="log"></div>
+    </div>
+
+    <!-- Modular JavaScript Architecture -->
+    <!-- State Management -->
+    <script src="client/state/GameState.js"></script>
+
+    <!-- Network Layer -->
+    <script src="client/network/WebSocketClient.js"></script>
+    <script src="client/network/MessageHandler.js"></script>
+
+    <!-- Rendering System -->
+    <script src="client/rendering/Camera.js"></script>
+    <script src="client/utils/WorldLayout.js"></script>
+    <script src="client/rendering/layers/BaseLayer.js"></script>
+    <script src="client/rendering/layers/BackgroundLayer.js"></script>
+    <script src="client/rendering/layers/ConnectionLayer.js"></script>
+    <script src="client/rendering/layers/WorldLayer.js"></script>
+    <script src="client/rendering/layers/FleetLayer.js"></script>
+    <script src="client/rendering/layers/OrderIndicatorsLayer.js"></script>
+    <script src="client/rendering/Renderer.js"></script>
+
+    <!-- UI Panels -->
+    <script src="client/ui/Scoreboard.js"></script>
+    <script src="client/ui/WorldList.js"></script>
+    <script src="client/ui/FleetList.js"></script>
+    <script src="client/ui/QueuedOrders.js"></script>
+    <script src="client/ui/WorldInfo.js"></script>
+    <script src="client/ui/FleetInfo.js"></script>
+    <script src="client/ui/ActionList.js"></script>
+    <script src="client/ui/CommandHint.js"></script>
+
+    <!-- Command Parser System -->
+    <script src="client/commands/tokenizer/TokenTypes.js"></script>
+    <script src="client/commands/tokenizer/Tokenizer.js"></script>
+    <script src="client/commands/parser/CommandAST.js"></script>
+    <script src="client/commands/parser/CommandGrammar.js"></script>
+    <script src="client/commands/parser/Parser.js"></script>
+    <script src="client/commands/validator/ValidationResult.js"></script>
+    <script src="client/commands/validator/ValidationRules.js"></script>
+    <script src="client/commands/validator/Validator.js"></script>
+    <script src="client/commands/suggester/FuzzyMatcher.js"></script>
+    <script src="client/commands/suggester/AutoComplete.js"></script>
+    <script src="client/commands/history/HistoryStorage.js"></script>
+    <script src="client/commands/history/CommandHistory.js"></script>
+    <script src="client/commands/CommandParser.js"></script>
+    <script src="client/ui/CommandInput.js"></script>
+
+    <!-- Main Entry Point -->
+    <script src="client/main.js"></script>
+</body>
+</html>

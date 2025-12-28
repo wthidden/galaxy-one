@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  starweb-server:
+    build: .
+    ports:
+      - "8765:8765"
+    environment:
+      - PORT=8765
+      - TURN_DURATION=180
+      - MAX_TURN_DURATION=480
+      - MAP_SIZE=255
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data  # Persist game data
+    networks:
+      - starweb-net
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./client:/usr/share/nginx/html:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - starweb-server
+    restart: unless-stopped
+    networks:
+      - starweb-net
+
+networks:
+  starweb-net:
+    driver: bridge
