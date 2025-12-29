@@ -1,6 +1,5 @@
-Welcome to StarWeb! 🚀
+**IMPORTANT UPDATE:** The server has been upgraded with new features! 🎉
 
-Server is running smoothly. Have fun exploring the galaxy!
+Enjoy the new admin message system. You can now receive real-time updates from the game administrator.
 
-Use SAY or CHAT to communicate with other players.
-Type HELP for commands.
+Type HELP for more commands.
