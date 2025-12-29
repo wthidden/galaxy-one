@@ -17,7 +17,6 @@ class World:
         self.id = world_id
         self.connections = []
         self.owner = None
-        self.pending_owner = None  # Player who will capture on next turn
         self.industry = 0
         self.metal = 0
         self.mines = 0

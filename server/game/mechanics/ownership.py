@@ -15,11 +15,12 @@ async def check_world_ownership(world) -> bool:
     """
     Check and update world ownership based on presence.
 
-    Ownership rules:
-    1. World stays owned if owner has fleets OR iships/pships defending
-    2. World becomes neutral if owner has no fleets AND no iships/pships
-    3. World is captured on FOLLOWING turn if single player has uncontested presence
-    4. World becomes neutral if multiple players contest it
+    Ownership rules (per StarWeb official rules):
+    1. Capture happens IMMEDIATELY when you're the only player with ships not at peace
+    2. Defensive ships (iships/pships) prevent capture
+    3. Owner keeps world as long as they have fleets OR defensive ships
+    4. Multiple players contesting → neutralize if no defenses
+    5. Zero population worlds cannot be owned
 
     Args:
         world: World to check
@@ -34,98 +35,87 @@ async def check_world_ownership(world) -> bool:
     old_owner = world.owner
     changed = False
 
-    # Get players with ships orbiting
+    # Cannot own zero-population worlds
+    if world.population <= 0:
+        if world.owner:
+            logger.info(f"World {world.id}: Neutralized (zero population)")
+            await sender.send_event(
+                world.owner,
+                f"Lost World {world.id} - population eliminated.",
+                "combat"
+            )
+            world.owner.worlds.remove(world)
+            world.owner = None
+            changed = True
+        return changed
+
+    # Get players with ships orbiting (not at peace)
     orbiting_players = {f.owner for f in world.fleets if f.ships > 0 and f.owner is not None}
-
-    # Check if current owner still has presence
-    owner_has_presence = False
-    if world.owner:
-        # Owner has presence if they have fleets OR defensive ships
-        owner_has_fleets = world.owner in orbiting_players
-        owner_has_defense = (world.iships > 0 or world.pships > 0)
-        owner_has_presence = owner_has_fleets or owner_has_defense
-
-    # Determine ownership changes
-    if world.owner and not owner_has_presence:
-        # Current owner lost ALL presence - neutralize immediately
-        # (no fleets AND no iships/pships)
-        logger.info(f"World {world.id}: {world.owner.name} lost presence (no fleets, no defense)")
-        await sender.send_event(
-            world.owner,
-            f"Lost World {world.id} - no fleets in orbit and no defenses remaining.",
-            "combat"
-        )
-        world.owner.worlds.remove(world)
-        world.owner = None
-        world.pending_owner = None
-        changed = True
 
     # Check if owner has defensive ships (iships/pships)
     owner_has_defense = world.owner and (world.iships > 0 or world.pships > 0)
 
     if owner_has_defense:
         # Owner has defensive ships - they keep the world regardless of fleets
-        # Clear any pending captures - defenses block capture attempts
-        world.pending_owner = None
+        # Defenses guarantee ownership
+        return changed
 
-    elif len(orbiting_players) > 1:
-        # Multiple players contesting, no defensive ships
-        # Contested worlds cannot be captured - clear pending
-        world.pending_owner = None
-        # If world is owned but owner has no fleet present, they lose it
-        if world.owner and world.owner not in orbiting_players:
-            logger.info(f"World {world.id}: Lost by {world.owner.name} - contested by multiple players")
+    # If owner has no defense, check fleet presence
+    if world.owner:
+        owner_has_fleets = world.owner in orbiting_players
+
+        if not owner_has_fleets:
+            # Owner has no fleets and no defenses - lose the world
+            logger.info(f"World {world.id}: {world.owner.name} lost presence (no fleets, no defense)")
             await sender.send_event(
                 world.owner,
-                f"Lost World {world.id} - contested by multiple players.",
+                f"Lost World {world.id} - no fleets in orbit and no defenses remaining.",
                 "combat"
             )
             world.owner.worlds.remove(world)
             world.owner = None
             changed = True
+            # Fall through to check if someone else captures it
+
+    # Now determine if someone captures the world
+    if len(orbiting_players) > 1:
+        # Multiple players contesting - cannot capture
+        # World stays neutral or owner keeps it if they have fleets
+        pass
 
     elif len(orbiting_players) == 1:
-        # Single player has presence
+        # Single player has uncontested presence
         sole_player = list(orbiting_players)[0]
 
-        # Check if there are defending forces from another player
+        # Check if there are enemy defensive ships blocking capture
         has_enemy_defense = world.owner and world.owner != sole_player and (world.iships > 0 or world.pships > 0)
 
         if has_enemy_defense:
-            # Enemy defenses block capture
-            world.pending_owner = None
-        elif world.owner == sole_player:
-            # Already owns it, maintain ownership
-            world.pending_owner = None
-        elif world.pending_owner == sole_player:
-            # Same player from last turn - complete the capture!
-            logger.info(f"World {world.id}: {sole_player.name} completes capture")
+            # Enemy defenses block capture - cannot capture until destroyed
+            pass
+        elif world.owner != sole_player:
+            # Not owned by this player (neutral or different owner with no defense)
+            # CAPTURE IMMEDIATELY
+            logger.info(f"World {world.id}: {sole_player.name} captures immediately")
+
+            if world.owner:
+                # Taking from another player (who had no defense)
+                await sender.send_event(
+                    world.owner,
+                    f"Lost World {world.id} - captured by {sole_player.name}.",
+                    "combat"
+                )
+                world.owner.worlds.remove(world)
+
             world.owner = sole_player
             sole_player.worlds.append(world)
-            world.pending_owner = None
             changed = True
+
             await sender.send_event(
                 sole_player,
                 f"**Captured World {world.id}!** Now under your control.",
                 "capture"
             )
-        else:
-            # New uncontested presence - set pending for next turn
-            logger.info(f"World {world.id}: {sole_player.name} pending capture next turn")
-            world.pending_owner = sole_player
-            await sender.send_event(
-                sole_player,
-                f"Fleet at World {world.id} - will capture next turn if uncontested.",
-                "info"
-            )
-    else:
-        # No presence at all
-        world.pending_owner = None
-        if world.owner:
-            # This case should be handled by the first condition, but just in case
-            world.owner.worlds.remove(world)
-            world.owner = None
-            changed = True
 
     # Publish ownership change event
     if changed:
