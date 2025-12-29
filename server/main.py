@@ -29,6 +29,7 @@ from .message_router import get_message_router
 from .game.state import get_game_state
 from .game.command_handlers import handle_command_message
 from .events.handlers import register_all_handlers
+from .admin_message import get_admin_watcher
 
 
 def run_http_server():
@@ -75,6 +76,29 @@ async def timer_loop():
                 logger.error(f"Error sending timer tick: {e}")
 
 
+async def admin_message_loop():
+    """
+    Watch admin message file and broadcast changes to all players.
+    """
+    from .message_sender import get_message_sender
+
+    admin_watcher = get_admin_watcher()
+    sender = get_message_sender()
+    game_state = get_game_state()
+
+    async def broadcast_admin_message(message):
+        """Broadcast admin message to all players"""
+        logger.info(f"Broadcasting admin message to all players")
+        for player in game_state.players.values():
+            try:
+                await sender.send_admin_message(player, message)
+            except Exception as e:
+                logger.error(f"Error sending admin message to {player.name}: {e}")
+
+    # Start watching
+    await admin_watcher.watch(broadcast_admin_message)
+
+
 async def main():
     """
     Main server initialization and startup.
@@ -109,6 +133,10 @@ async def main():
     # Start timer loop
     logger.info("Starting game timer...")
     asyncio.create_task(timer_loop())
+
+    # Start admin message watcher
+    logger.info("Starting admin message watcher...")
+    asyncio.create_task(admin_message_loop())
 
     # Start WebSocket server
     ws_handler = get_websocket_handler()

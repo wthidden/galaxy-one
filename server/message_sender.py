@@ -134,6 +134,19 @@ class MessageSender:
             "event_type": event_type
         })
 
+    async def send_admin_message(self, player: Player, message: str):
+        """
+        Send admin message (broadcasts, announcements).
+
+        Args:
+            player: The player to send to
+            message: The admin message text
+        """
+        await self._send(player, {
+            "type": "admin_message",
+            "text": message
+        })
+
     async def send_animation(self, player: Player, animation_data: dict):
         """
         Send animation trigger to client.
