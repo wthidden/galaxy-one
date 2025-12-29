@@ -839,3 +839,150 @@ async def execute_consumer_goods_order(order: dict):
         "merchant"
     )
     logger.info(f"F{fleet_id}: Merchant delivered {amount} consumer goods for {points} points")
+
+
+async def execute_view_artifact_order(order: dict):
+    """Execute VIEW_ARTIFACT order (V#, V#F#, V#W). Display artifact information."""
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    player = order["player"]
+    artifact_id = order["artifact_id"]
+    location_type = order.get("location_type")
+    location_id = order.get("location_id")
+
+    # Find the artifact
+    artifact = None
+    location_desc = ""
+
+    if location_type == "F":
+        fleet = game_state.get_fleet(location_id)
+        if fleet and fleet.owner == player:
+            for a in fleet.artifacts:
+                if a.id == artifact_id:
+                    artifact = a
+                    location_desc = f"Fleet {location_id}"
+                    break
+
+    elif location_type == "W":
+        # Find first player fleet's world
+        for fleet in game_state.fleets.values():
+            if fleet.owner == player and fleet.ships > 0:
+                world = fleet.world
+                for a in world.artifacts:
+                    if a.id == artifact_id:
+                        artifact = a
+                        location_desc = f"World {world.id}"
+                        break
+                break
+
+    else:
+        # V# - search all player's possessions
+        for fleet in game_state.fleets.values():
+            if fleet.owner == player:
+                for a in fleet.artifacts:
+                    if a.id == artifact_id:
+                        artifact = a
+                        location_desc = f"Fleet {fleet.id}"
+                        break
+                if artifact:
+                    break
+
+        if not artifact:
+            for world in game_state.worlds.values():
+                if world.owner == player:
+                    for a in world.artifacts:
+                        if a.id == artifact_id:
+                            artifact = a
+                            location_desc = f"World {world.id}"
+                            break
+                    if artifact:
+                        break
+
+    if artifact:
+        artifact_info = f"Artifact {artifact.id}: '{artifact.name}' (located at {location_desc})"
+        await sender.send_event(player, artifact_info, "info")
+        logger.info(f"Player {player.name} viewed artifact {artifact_id}")
+    else:
+        await sender.send_event(player, f"Artifact {artifact_id} not found", "error")
+
+
+async def execute_declare_relation_order(order: dict):
+    """Execute DECLARE_RELATION order (F#Q#, F#X#). Set peace/war status."""
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    player = order["player"]
+    fleet_id = order["fleet_id"]
+    target_fleet_id = order["target_fleet_id"]
+    relation_type = order["relation_type"]
+
+    fleet = game_state.get_fleet(fleet_id)
+    target_fleet = game_state.get_fleet(target_fleet_id)
+
+    if not fleet or fleet.owner != player or not target_fleet:
+        return
+
+    # Initialize player relations if not exists
+    if not hasattr(player, 'relations'):
+        player.relations = {}
+
+    target_player = target_fleet.owner
+    if not target_player:
+        return
+
+    # Set the relation
+    if relation_type == "PEACE":
+        player.relations[target_player.id] = "PEACE"
+        await sender.send_event(
+            player,
+            f"F{fleet_id} declared PEACE with F{target_fleet_id} (owned by {target_player.name})",
+            "diplomacy"
+        )
+        # Notify the target player
+        await sender.send_event(
+            target_player,
+            f"{player.name}'s F{fleet_id} declared PEACE with your F{target_fleet_id}",
+            "diplomacy"
+        )
+        logger.info(f"{player.name} declared peace with {target_player.name}")
+
+    elif relation_type == "WAR":
+        player.relations[target_player.id] = "WAR"
+        await sender.send_event(
+            player,
+            f"F{fleet_id} declared WAR with F{target_fleet_id} (owned by {target_player.name})",
+            "diplomacy"
+        )
+        # Notify the target player
+        await sender.send_event(
+            target_player,
+            f"{player.name}'s F{fleet_id} declared WAR on your F{target_fleet_id}!",
+            "diplomacy"
+        )
+        logger.info(f"{player.name} declared war on {target_player.name}")
+
+
+async def execute_plunder_order(order: dict):
+    """Execute PLUNDER order (W#X). Convert population to metal."""
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    player = order["player"]
+    world_id = order["world_id"]
+
+    world = game_state.get_world(world_id)
+    if not world or world.owner != player or world.population == 0:
+        return
+
+    # Convert all population to metal (1:1 ratio)
+    metal_gained = world.population
+    world.metal += metal_gained
+    world.population = 0
+
+    await sender.send_event(
+        player,
+        f"W{world_id}: Plundered {metal_gained} population, converted to {metal_gained} metal!",
+        "plunder"
+    )
+    logger.info(f"W{world_id}: {player.name} plundered {metal_gained} population")

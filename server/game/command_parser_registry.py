@@ -19,7 +19,10 @@ from .commands import (
     ProbeCommand,
     ScrapShipsCommand,
     JettisonCommand,
-    UnloadConsumerGoodsCommand
+    UnloadConsumerGoodsCommand,
+    ViewArtifactCommand,
+    DeclareRelationCommand,
+    PlunderCommand
 )
 
 
@@ -247,6 +250,51 @@ def parse_consumer_goods(player, command_text: str, match: re.Match) -> Command:
     fleet_id = int(match.group(1))
     amount = int(match.group(2)) if match.group(2) else None
     return UnloadConsumerGoodsCommand(player, fleet_id, amount)
+
+
+@_registry.register(r"^V(\d+)F(\d+)$")
+def parse_view_artifact_fleet(player, command_text: str, match: re.Match) -> Command:
+    """Parse: V3F5 - View artifact 3 on fleet 5"""
+    artifact_id = int(match.group(1))
+    fleet_id = int(match.group(2))
+    return ViewArtifactCommand(player, artifact_id, "F", fleet_id)
+
+
+@_registry.register(r"^V(\d+)W$")
+def parse_view_artifact_world(player, command_text: str, match: re.Match) -> Command:
+    """Parse: V3W - View artifact 3 on world"""
+    artifact_id = int(match.group(1))
+    return ViewArtifactCommand(player, artifact_id, "W")
+
+
+@_registry.register(r"^V(\d+)$")
+def parse_view_artifact(player, command_text: str, match: re.Match) -> Command:
+    """Parse: V3 - View artifact 3 (search player's possession)"""
+    artifact_id = int(match.group(1))
+    return ViewArtifactCommand(player, artifact_id)
+
+
+@_registry.register(r"^F(\d+)Q(\d+)$")
+def parse_declare_peace(player, command_text: str, match: re.Match) -> Command:
+    """Parse: F5Q10 - Fleet 5 declares peace with fleet 10"""
+    fleet_id = int(match.group(1))
+    target_fleet_id = int(match.group(2))
+    return DeclareRelationCommand(player, fleet_id, target_fleet_id, "PEACE")
+
+
+@_registry.register(r"^F(\d+)X(\d+)$")
+def parse_declare_war(player, command_text: str, match: re.Match) -> Command:
+    """Parse: F5X10 - Fleet 5 declares war with fleet 10"""
+    fleet_id = int(match.group(1))
+    target_fleet_id = int(match.group(2))
+    return DeclareRelationCommand(player, fleet_id, target_fleet_id, "WAR")
+
+
+@_registry.register(r"^W(\d+)X$")
+def parse_plunder(player, command_text: str, match: re.Match) -> Command:
+    """Parse: W5X - Plunder world 5"""
+    world_id = int(match.group(1))
+    return PlunderCommand(player, world_id)
 
 
 def get_command_parser():

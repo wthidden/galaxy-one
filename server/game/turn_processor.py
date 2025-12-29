@@ -17,6 +17,9 @@ from .mechanics.production import (
     execute_scrap_ships_order,
     execute_jettison_order,
     execute_consumer_goods_order,
+    execute_view_artifact_order,
+    execute_declare_relation_order,
+    execute_plunder_order,
     process_world_production,
     calculate_player_score
 )
@@ -83,6 +86,14 @@ async def process_turn():
     # Execute orders in priority order
     logger.info(f"Executing {len(all_orders)} orders")
 
+    # 0a. View artifact orders (informational, execute first)
+    for order in orders_by_type.get("VIEW_ARTIFACT", []):
+        await execute_view_artifact_order(order)
+
+    # 0b. Declare relations (diplomatic, execute early)
+    for order in orders_by_type.get("DECLARE_RELATION", []):
+        await execute_declare_relation_order(order)
+
     # 1. Transfers (can affect other orders)
     for order in orders_by_type.get("TRANSFER", []):
         await execute_transfer_order(order)
@@ -114,6 +125,10 @@ async def process_turn():
     # 4d. Scrap ships to industry (before builds so industry can be used)
     for order in orders_by_type.get("SCRAP_SHIPS", []):
         await execute_scrap_ships_order(order)
+
+    # 4e. Plunder worlds (convert population to metal before builds)
+    for order in orders_by_type.get("PLUNDER", []):
+        await execute_plunder_order(order)
 
     # 5. Builds (before combat)
     for order in orders_by_type.get("BUILD", []):

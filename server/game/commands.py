@@ -760,6 +760,173 @@ class MigrateCommand(Command):
         return f"Migrate {self.amount} population from W{self.world_id} to W{self.dest_world}"
 
 
+class ViewArtifactCommand(Command):
+    """View artifact details (V#, V#F#, V#W)."""
+
+    def __init__(self, player, artifact_id: int, location_type: Optional[str] = None,
+                 location_id: Optional[int] = None):
+        super().__init__(player)
+        self.artifact_id = artifact_id
+        self.location_type = location_type  # None, "F", or "W"
+        self.location_id = location_id
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Find the artifact
+        artifact = None
+        source = None
+
+        if self.location_type == "F":
+            # View artifact on specific fleet
+            fleet = game_state.get_fleet(self.location_id)
+            if not fleet:
+                return False, f"Fleet {self.location_id} does not exist"
+            if fleet.owner != self.player:
+                return False, f"You do not own fleet {self.location_id}"
+
+            for a in fleet.artifacts:
+                if a.id == self.artifact_id:
+                    artifact = a
+                    source = fleet
+                    break
+
+            if not artifact:
+                return False, f"Artifact {self.artifact_id} not found on Fleet {self.location_id}"
+
+        elif self.location_type == "W":
+            # View artifact on world where any of player's fleets are located
+            # Find first fleet location
+            player_fleets = [f for f in game_state.fleets.values() if f.owner == self.player and f.ships > 0]
+            if not player_fleets:
+                return False, "You have no fleets"
+
+            world = player_fleets[0].world
+            for a in world.artifacts:
+                if a.id == self.artifact_id:
+                    artifact = a
+                    source = world
+                    break
+
+            if not artifact:
+                return False, f"Artifact {self.artifact_id} not found at world {world.id}"
+
+        else:
+            # V# - search player's fleets and owned worlds
+            # Check player's fleets first
+            for fleet in game_state.fleets.values():
+                if fleet.owner == self.player:
+                    for a in fleet.artifacts:
+                        if a.id == self.artifact_id:
+                            artifact = a
+                            source = fleet
+                            break
+                    if artifact:
+                        break
+
+            # If not found, check player's worlds
+            if not artifact:
+                for world in game_state.worlds.values():
+                    if world.owner == self.player:
+                        for a in world.artifacts:
+                            if a.id == self.artifact_id:
+                                artifact = a
+                                source = world
+                                break
+                        if artifact:
+                            break
+
+            if not artifact:
+                return False, f"Artifact {self.artifact_id} not found in your possession"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "VIEW_ARTIFACT",
+            "player": self.player,
+            "artifact_id": self.artifact_id,
+            "location_type": self.location_type,
+            "location_id": self.location_id
+        }
+
+    def get_description(self) -> str:
+        if self.location_type == "F":
+            return f"View Artifact {self.artifact_id} on Fleet {self.location_id}"
+        elif self.location_type == "W":
+            return f"View Artifact {self.artifact_id} on World"
+        else:
+            return f"View Artifact {self.artifact_id}"
+
+
+class DeclareRelationCommand(Command):
+    """Declare peace/war with another fleet (F#Q, F#X)."""
+
+    def __init__(self, player, fleet_id: int, target_fleet_id: int, relation_type: str):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+        self.target_fleet_id = target_fleet_id
+        self.relation_type = relation_type  # "PEACE" or "WAR"
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        fleet = game_state.get_fleet(self.fleet_id)
+        if not fleet:
+            return False, f"Fleet {self.fleet_id} does not exist"
+        if fleet.owner != self.player:
+            return False, f"You do not own fleet {self.fleet_id}"
+
+        target_fleet = game_state.get_fleet(self.target_fleet_id)
+        if not target_fleet:
+            return False, f"Target fleet {self.target_fleet_id} does not exist"
+
+        if target_fleet.owner == self.player:
+            return False, "Cannot declare relations with your own fleet"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DECLARE_RELATION",
+            "player": self.player,
+            "fleet_id": self.fleet_id,
+            "target_fleet_id": self.target_fleet_id,
+            "relation_type": self.relation_type
+        }
+
+    def get_description(self) -> str:
+        relation = "Peace" if self.relation_type == "PEACE" else "War"
+        return f"F{self.fleet_id} declares {relation} with F{self.target_fleet_id}"
+
+
+class PlunderCommand(Command):
+    """Plunder world - convert population to metal (W#X)."""
+
+    def __init__(self, player, world_id: int):
+        super().__init__(player)
+        self.world_id = world_id
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        world = game_state.get_world(self.world_id)
+        if not world:
+            return False, f"World {self.world_id} does not exist"
+
+        if world.owner != self.player:
+            return False, f"You do not own world {self.world_id}"
+
+        if world.population == 0:
+            return False, f"World {self.world_id} has no population to plunder"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "PLUNDER",
+            "player": self.player,
+            "world_id": self.world_id
+        }
+
+    def get_description(self) -> str:
+        return f"Plunder W{self.world_id} (convert population to metal)"
+
+
 # Exclusive order types that cannot coexist for same fleet
 EXCLUSIVE_ORDER_TYPES = {"MOVE", "FIRE", "AMBUSH"}
 
