@@ -109,9 +109,20 @@ async def main():
 
     # Initialize game state
     game_state = get_game_state()
-    logger.info(f"Initialized game map with {len(game_state.worlds)} worlds")
-    logger.info(f"Created {len(game_state.fleets)} neutral fleets")
-    logger.info(f"Placed {len(game_state.artifacts)} artifacts")
+
+    # Try to load saved game state
+    from .game.persistence import get_persistence
+    persistence = get_persistence()
+    if persistence.load_state(game_state):
+        logger.info(f"Loaded saved game state: Turn {game_state.game_turn}")
+        logger.info(f"  - {len(game_state.worlds)} worlds")
+        logger.info(f"  - {len(game_state.fleets)} fleets")
+        logger.info(f"  - {len(game_state.artifacts)} artifacts")
+        logger.info(f"  - {len(game_state._persistent_players)} persistent players")
+    else:
+        logger.info(f"Initialized new game map with {len(game_state.worlds)} worlds")
+        logger.info(f"Created {len(game_state.fleets)} neutral fleets")
+        logger.info(f"Placed {len(game_state.artifacts)} artifacts")
 
     # Register message handlers
     logger.info("Registering message handlers...")
@@ -145,8 +156,32 @@ async def main():
     logger.info("Server ready! Players can connect.")
     logger.info("="*60)
 
+    # Setup graceful shutdown
+    shutdown_event = asyncio.Event()
+
+    def handle_shutdown(signum, frame):
+        """Handle shutdown signals gracefully"""
+        logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+        shutdown_event.set()
+
+    import signal
+    signal.signal(signal.SIGTERM, handle_shutdown)
+    signal.signal(signal.SIGINT, handle_shutdown)
+
+    # Start WebSocket server
     async with websockets.serve(ws_handler.handle_connection, "0.0.0.0", 8765):
-        await asyncio.Future()  # Run forever
+        # Wait for shutdown signal
+        await shutdown_event.wait()
+
+    # Graceful shutdown
+    logger.info("Shutting down gracefully...")
+
+    # Save final game state
+    logger.info("Saving final game state...")
+    persistence.save_state(game_state)
+
+    logger.info("Shutdown complete")
+    logger.info("="*60)
 
 
 if __name__ == "__main__":

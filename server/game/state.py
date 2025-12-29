@@ -2,8 +2,11 @@
 Central game state management.
 """
 import random
+import logging
 from typing import Dict, Optional
 from .entities import World, Fleet, Artifact, Player
+
+logger = logging.getLogger(__name__)
 
 
 class GameState:
@@ -17,6 +20,7 @@ class GameState:
         self.fleets: Dict[int, Fleet] = {}
         self.artifacts: Dict[int, Artifact] = {}
         self.players: Dict[any, Player] = {}  # websocket -> Player
+        self._persistent_players: Dict[str, dict] = {}  # player_name -> player_data (for reconnection)
 
         self.game_turn = 0
         self.turn_end_time = 0
@@ -134,6 +138,50 @@ class GameState:
         total_minutes = sum(p.turn_timer_minutes for p in players)
         avg_minutes = total_minutes / len(players)
         return int(avg_minutes * 60)  # Convert to seconds
+
+    def get_persistent_player(self, player_name: str) -> Optional[dict]:
+        """
+        Get persistent player data for reconnection.
+
+        Args:
+            player_name: Name of the player
+
+        Returns:
+            Player data dict or None
+        """
+        return self._persistent_players.get(player_name)
+
+    def reconnect_player(self, player: Player, player_data: dict):
+        """
+        Reconnect a player to their existing game state.
+
+        Args:
+            player: New Player object with websocket
+            player_data: Persistent player data
+        """
+        # Restore player state
+        player.id = player_data["id"]
+        player.name = player_data["name"]
+        player.character_type = player_data["character_type"]
+        player.score = player_data["score"]
+        player.turn_timer_minutes = player_data["turn_timer_minutes"]
+        player.known_worlds = player_data["known_worlds"]
+
+        # Reconnect fleets
+        for fleet_id in player_data.get("fleet_ids", []):
+            if fleet_id in self.fleets:
+                fleet = self.fleets[fleet_id]
+                fleet.owner = player
+                player.fleets.append(fleet)
+
+        # Reconnect worlds
+        for world_id in player_data.get("world_ids", []):
+            if world_id in self.worlds:
+                world = self.worlds[world_id]
+                world.owner = player
+                player.worlds.append(world)
+
+        logger.info(f"Reconnected player {player.name} with {len(player.worlds)} worlds and {len(player.fleets)} fleets")
 
 
 # Global game state instance

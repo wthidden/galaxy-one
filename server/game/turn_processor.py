@@ -160,4 +160,10 @@ async def process_turn():
     )
     await event_bus.publish(event)
 
+    # Save game state to disk
+    from .persistence import get_persistence
+    persistence = get_persistence()
+    persistence.save_state(game_state)
+    logger.info(f"Game state saved after turn {game_state.game_turn}")
+
     logger.info(f"Turn {game_state.game_turn} complete")

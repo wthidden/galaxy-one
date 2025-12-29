@@ -142,7 +142,19 @@ async def handle_join(player, full_command, parts):
         await sender.send_error(player, "Please provide a name")
         return
 
-    # Update player
+    # Check if this player already exists (reconnection)
+    existing_player_data = game_state.get_persistent_player(name)
+    if existing_player_data:
+        # Reconnect to existing game state
+        game_state.reconnect_player(player, existing_player_data)
+        await sender.send_info(
+            player,
+            f"Welcome back, {name}! Reconnected to your {player.character_type} empire."
+        )
+        logger.info(f"Player {name} reconnected to existing game")
+        return
+
+    # New player - set up their empire
     player.name = name
     player.character_type = char_type
     player.turn_timer_minutes = turn_timer
