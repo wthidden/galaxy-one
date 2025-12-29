@@ -47,7 +47,8 @@ async def check_world_ownership(world) -> bool:
 
     # Determine ownership changes
     if world.owner and not owner_has_presence:
-        # Current owner lost presence - neutralize immediately
+        # Current owner lost ALL presence - neutralize immediately
+        # (no fleets AND no iships/pships)
         logger.info(f"World {world.id}: {world.owner.name} lost presence (no fleets, no defense)")
         await sender.send_event(
             world.owner,
@@ -59,11 +60,21 @@ async def check_world_ownership(world) -> bool:
         world.pending_owner = None
         changed = True
 
+    # Check if owner has defensive ships (iships/pships)
+    owner_has_defense = world.owner and (world.iships > 0 or world.pships > 0)
+
+    if owner_has_defense:
+        # Owner has defensive ships - they keep the world regardless of fleets
+        # Clear any pending captures - defenses block capture attempts
+        world.pending_owner = None
+
     elif len(orbiting_players) > 1:
-        # Multiple players contesting - neutralize if owned, clear pending
+        # Multiple players contesting, no defensive ships
+        # Contested worlds cannot be captured - clear pending
+        world.pending_owner = None
+        # If world is owned but owner has no fleet present, they lose it
         if world.owner and world.owner not in orbiting_players:
-            # Owner doesn't have fleet but others do - lose it
-            logger.info(f"World {world.id}: Contested by multiple players")
+            logger.info(f"World {world.id}: Lost by {world.owner.name} - contested by multiple players")
             await sender.send_event(
                 world.owner,
                 f"Lost World {world.id} - contested by multiple players.",
@@ -72,7 +83,6 @@ async def check_world_ownership(world) -> bool:
             world.owner.worlds.remove(world)
             world.owner = None
             changed = True
-        world.pending_owner = None
 
     elif len(orbiting_players) == 1:
         # Single player has presence
