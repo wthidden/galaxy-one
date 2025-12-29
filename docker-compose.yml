@@ -11,6 +11,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/app/data  # Persist game data
+      - ./admin_message.txt:/app/admin_message.txt  # Live admin message updates
     networks:
       - starweb-net
 
