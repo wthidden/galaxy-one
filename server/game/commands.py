@@ -842,6 +842,494 @@ class PlunderCommand(Command):
         return f"Plunder W{self.world_id} (convert population to metal)"
 
 
+class BuildIndustryCommand(Command):
+    """Build industry on world (W#I#I)."""
+
+    def __init__(self, player, world_id: int, amount: int):
+        super().__init__(player)
+        self.world_id = world_id
+        self.amount = amount
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate world ownership
+        valid, msg, world = validate_world_ownership(game_state, self.player, self.world_id)
+        if not valid:
+            return valid, msg
+
+        if self.amount <= 0:
+            return False, "Build amount must be positive"
+
+        # Empire Builders pay 4 per industry, others pay 5
+        cost_per_industry = 4 if self.player.character_type == "Empire Builder" else 5
+
+        total_industry_cost = self.amount * cost_per_industry
+        total_metal_cost = self.amount * cost_per_industry
+
+        if world.industry < total_industry_cost:
+            return False, f"Need {total_industry_cost} industry, have {world.industry}"
+
+        if world.metal < total_metal_cost:
+            return False, f"Need {total_metal_cost} metal, have {world.metal}"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "BUILD_INDUSTRY",
+            "player": self.player,
+            "world_id": self.world_id,
+            "amount": self.amount
+        }
+
+    def get_description(self) -> str:
+        return f"Build {self.amount} industry on W{self.world_id}"
+
+
+class IncreasePopulationLimitCommand(Command):
+    """Increase population limit on world (W#I#L)."""
+
+    def __init__(self, player, world_id: int, amount: int):
+        super().__init__(player)
+        self.world_id = world_id
+        self.amount = amount
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate world ownership
+        valid, msg, world = validate_world_ownership(game_state, self.player, self.world_id)
+        if not valid:
+            return valid, msg
+
+        if self.amount <= 0:
+            return False, "Amount must be positive"
+
+        # Costs 5 industry + 5 metal per increase
+        total_industry_cost = self.amount * 5
+        total_metal_cost = self.amount * 5
+
+        if world.industry < total_industry_cost:
+            return False, f"Need {total_industry_cost} industry, have {world.industry}"
+
+        if world.metal < total_metal_cost:
+            return False, f"Need {total_metal_cost} metal, have {world.metal}"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "INCREASE_POPULATION_LIMIT",
+            "player": self.player,
+            "world_id": self.world_id,
+            "amount": self.amount
+        }
+
+    def get_description(self) -> str:
+        return f"Increase population limit by {self.amount} on W{self.world_id}"
+
+
+class BuildRobotsCommand(Command):
+    """Build robots from industry (W#B#R) - Berserker only."""
+
+    def __init__(self, player, world_id: int, amount: int):
+        super().__init__(player)
+        self.world_id = world_id
+        self.amount = amount
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Only Berserker can build robots
+        valid, msg = validate_character_type(self.player, "Berserker")
+        if not valid:
+            return valid, msg
+
+        # Validate world ownership
+        valid, msg, world = validate_world_ownership(game_state, self.player, self.world_id)
+        if not valid:
+            return valid, msg
+
+        if self.amount <= 0:
+            return False, "Build amount must be positive"
+
+        # 1 industry = 2 robots
+        industry_needed = (self.amount + 1) // 2  # Round up
+
+        if world.industry < industry_needed:
+            return False, f"Need {industry_needed} industry, have {world.industry}"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "BUILD_ROBOTS",
+            "player": self.player,
+            "world_id": self.world_id,
+            "amount": self.amount
+        }
+
+    def get_description(self) -> str:
+        return f"Build {self.amount} robots on W{self.world_id}"
+
+
+class GiftFleetCommand(Command):
+    """Gift fleet to another player (F#G=xxxxxx)."""
+
+    def __init__(self, player, fleet_id: int, target_player_name: str):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+        self.target_player_name = target_player_name
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate fleet ownership
+        valid, msg, fleet = validate_fleet_ownership(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
+
+        # Check target player exists
+        target_player = None
+        for p in game_state.players.values():
+            if p.name == self.target_player_name:
+                target_player = p
+                break
+
+        if not target_player:
+            return False, f"Player '{self.target_player_name}' not found"
+
+        if target_player == self.player:
+            return False, "Cannot gift fleet to yourself"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "GIFT_FLEET",
+            "player": self.player,
+            "fleet_id": self.fleet_id,
+            "target_player_name": self.target_player_name
+        }
+
+    def get_description(self) -> str:
+        return f"Gift F{self.fleet_id} to player '{self.target_player_name}'"
+
+
+class GiftWorldCommand(Command):
+    """Gift world to another player (W#G=xxxxxx)."""
+
+    def __init__(self, player, world_id: int, target_player_name: str):
+        super().__init__(player)
+        self.world_id = world_id
+        self.target_player_name = target_player_name
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate world ownership
+        valid, msg, world = validate_world_ownership(game_state, self.player, self.world_id)
+        if not valid:
+            return valid, msg
+
+        # Cannot gift homeworld
+        if world.key:
+            return False, "Cannot gift your homeworld"
+
+        # Check target player exists
+        target_player = None
+        for p in game_state.players.values():
+            if p.name == self.target_player_name:
+                target_player = p
+                break
+
+        if not target_player:
+            return False, f"Player '{self.target_player_name}' not found"
+
+        if target_player == self.player:
+            return False, "Cannot gift world to yourself"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "GIFT_WORLD",
+            "player": self.player,
+            "world_id": self.world_id,
+            "target_player_name": self.target_player_name
+        }
+
+    def get_description(self) -> str:
+        return f"Gift W{self.world_id} to player '{self.target_player_name}'"
+
+
+class BuildPBBCommand(Command):
+    """Build Planet Buster Bomb (F#B) - requires 25+ ships."""
+
+    def __init__(self, player, fleet_id: int):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate fleet ownership and has ships
+        valid, msg, fleet = validate_fleet_has_ships(game_state, self.player, self.fleet_id, min_ships=25)
+        if not valid:
+            return valid, msg
+
+        # Fleet cannot already have a PBB
+        if fleet.has_pbb:
+            return False, f"Fleet {self.fleet_id} already has a Planet Buster Bomb"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "BUILD_PBB",
+            "player": self.player,
+            "fleet_id": self.fleet_id
+        }
+
+    def get_description(self) -> str:
+        return f"Build Planet Buster Bomb on F{self.fleet_id}"
+
+
+class DropPBBCommand(Command):
+    """Drop Planet Buster Bomb (F#D) - destroys world."""
+
+    def __init__(self, player, fleet_id: int):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate fleet ownership
+        valid, msg, fleet = validate_fleet_ownership(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
+
+        # Fleet must have a PBB
+        if not fleet.has_pbb:
+            return False, f"Fleet {self.fleet_id} does not have a Planet Buster Bomb"
+
+        # Cannot drop on homeworld
+        world = fleet.world
+        if world.key:
+            return False, "Cannot drop Planet Buster Bomb on a homeworld"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DROP_PBB",
+            "player": self.player,
+            "fleet_id": self.fleet_id
+        }
+
+    def get_description(self) -> str:
+        return f"Drop Planet Buster Bomb from F{self.fleet_id}"
+
+
+class RobotAttackCommand(Command):
+    """Convert ships to robots for attack (F#R#) - Berserker only."""
+
+    def __init__(self, player, fleet_id: int, amount: int):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+        self.amount = amount
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Only Berserker can use robot attacks
+        valid, msg = validate_character_type(self.player, "Berserker")
+        if not valid:
+            return valid, msg
+
+        # Validate fleet ownership and has ships
+        valid, msg, fleet = validate_fleet_has_ships(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
+
+        if self.amount <= 0:
+            return False, "Amount must be positive"
+
+        # 1 ship = 2 robots
+        ships_needed = (self.amount + 1) // 2  # Round up
+
+        if fleet.ships < ships_needed:
+            return False, f"Fleet {self.fleet_id} only has {fleet.ships} ships, need {ships_needed}"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "ROBOT_ATTACK",
+            "player": self.player,
+            "fleet_id": self.fleet_id,
+            "amount": self.amount
+        }
+
+    def get_description(self) -> str:
+        return f"Convert {self.amount} robots from F{self.fleet_id} for attack"
+
+
+class DeclareAllyCommand(Command):
+    """Declare another player as ally (A=xxxxxx)."""
+
+    def __init__(self, player, target_player_name: str):
+        super().__init__(player)
+        self.target_player_name = target_player_name
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Check target player exists
+        target_player = None
+        for p in game_state.players.values():
+            if p.name == self.target_player_name:
+                target_player = p
+                break
+
+        if not target_player:
+            return False, f"Player '{self.target_player_name}' not found"
+
+        if target_player == self.player:
+            return False, "Cannot declare yourself as ally"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DECLARE_ALLY",
+            "player": self.player,
+            "target_player_name": self.target_player_name
+        }
+
+    def get_description(self) -> str:
+        return f"Declare '{self.target_player_name}' as ally"
+
+
+class DeclareNonAllyCommand(Command):
+    """Declare player as non-ally (N=xxxxxx)."""
+
+    def __init__(self, player, target_player_name: str):
+        super().__init__(player)
+        self.target_player_name = target_player_name
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Check target player exists
+        target_player = None
+        for p in game_state.players.values():
+            if p.name == self.target_player_name:
+                target_player = p
+                break
+
+        if not target_player:
+            return False, f"Player '{self.target_player_name}' not found"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DECLARE_NON_ALLY",
+            "player": self.player,
+            "target_player_name": self.target_player_name
+        }
+
+    def get_description(self) -> str:
+        return f"Declare '{self.target_player_name}' as non-ally"
+
+
+class DeclareLoaderCommand(Command):
+    """Allow player to load metal from your worlds (L=xxxxxx)."""
+
+    def __init__(self, player, target_player_name: str):
+        super().__init__(player)
+        self.target_player_name = target_player_name
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Check target player exists
+        target_player = None
+        for p in game_state.players.values():
+            if p.name == self.target_player_name:
+                target_player = p
+                break
+
+        if not target_player:
+            return False, f"Player '{self.target_player_name}' not found"
+
+        if target_player == self.player:
+            return False, "Cannot declare yourself as loader"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DECLARE_LOADER",
+            "player": self.player,
+            "target_player_name": self.target_player_name
+        }
+
+    def get_description(self) -> str:
+        return f"Allow '{self.target_player_name}' to load metal from your worlds"
+
+
+class DeclareNonLoaderCommand(Command):
+    """Revoke player's ability to load metal (X=xxxxxx)."""
+
+    def __init__(self, player, target_player_name: str):
+        super().__init__(player)
+        self.target_player_name = target_player_name
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Check target player exists
+        target_player = None
+        for p in game_state.players.values():
+            if p.name == self.target_player_name:
+                target_player = p
+                break
+
+        if not target_player:
+            return False, f"Player '{self.target_player_name}' not found"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DECLARE_NON_LOADER",
+            "player": self.player,
+            "target_player_name": self.target_player_name
+        }
+
+    def get_description(self) -> str:
+        return f"Revoke '{self.target_player_name}' loader status"
+
+
+class DeclareJihadCommand(Command):
+    """Declare Jihad against another player (J=xxxxxx) - Apostle only."""
+
+    def __init__(self, player, target_player_name: str):
+        super().__init__(player)
+        self.target_player_name = target_player_name
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Only Apostle can declare Jihad
+        valid, msg = validate_character_type(self.player, "Apostle")
+        if not valid:
+            return valid, msg
+
+        # Check target player exists
+        target_player = None
+        for p in game_state.players.values():
+            if p.name == self.target_player_name:
+                target_player = p
+                break
+
+        if not target_player:
+            return False, f"Player '{self.target_player_name}' not found"
+
+        if target_player == self.player:
+            return False, "Cannot declare Jihad against yourself"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DECLARE_JIHAD",
+            "player": self.player,
+            "target_player_name": self.target_player_name
+        }
+
+    def get_description(self) -> str:
+        return f"Declare Jihad against '{self.target_player_name}'"
+
+
 # Exclusive order types that cannot coexist for same fleet
 EXCLUSIVE_ORDER_TYPES = {"MOVE", "FIRE", "AMBUSH"}
 

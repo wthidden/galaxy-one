@@ -10,7 +10,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from server.game.commands import (
     MoveFleetCommand, BuildCommand, TransferCommand, FireCommand,
     LoadCommand, UnloadCommand, ScrapShipsCommand, PlunderCommand,
-    ProbeCommand, ViewArtifactCommand, DeclareRelationCommand
+    ProbeCommand, ViewArtifactCommand, DeclareRelationCommand,
+    BuildIndustryCommand, IncreasePopulationLimitCommand, BuildRobotsCommand,
+    GiftFleetCommand, GiftWorldCommand, BuildPBBCommand, DropPBBCommand,
+    RobotAttackCommand, DeclareAllyCommand, DeclareNonAllyCommand,
+    DeclareLoaderCommand, DeclareNonLoaderCommand, DeclareJihadCommand
 )
 from tests.fixtures import (
     create_basic_game_state, create_combat_game_state,
@@ -316,6 +320,277 @@ class TestCommandValidation(unittest.TestCase):
     def test_declare_relation_valid(self):
         """Valid relation declaration should pass validation"""
         cmd = DeclareRelationCommand(self.player1, 1, 3, "PEACE")  # Fleet 3 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # BuildIndustry validation tests
+    def test_build_industry_not_owned(self):
+        """Cannot build industry on world you don't own"""
+        cmd = BuildIndustryCommand(self.player1, 2, 2)  # World 2 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_build_industry_insufficient_resources(self):
+        """Cannot build industry without sufficient resources"""
+        self.worlds[0].industry = 3
+        self.worlds[0].metal = 10
+        cmd = BuildIndustryCommand(self.player1, 1, 2)  # World 1, need 10 industry (5 each for Empire Builder)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("industry", msg)
+
+    def test_build_industry_valid(self):
+        """Valid industry build should pass"""
+        self.worlds[0].industry = 20
+        self.worlds[0].metal = 20
+        cmd = BuildIndustryCommand(self.player1, 1, 2)  # World 1 owned by player1
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # IncreasePopulationLimit validation tests
+    def test_increase_pop_limit_not_owned(self):
+        """Cannot increase pop limit on world you don't own"""
+        cmd = IncreasePopulationLimitCommand(self.player1, 2, 2)  # World 2 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_increase_pop_limit_insufficient_resources(self):
+        """Cannot increase pop limit without sufficient resources"""
+        self.worlds[0].industry = 4
+        self.worlds[0].metal = 10
+        cmd = IncreasePopulationLimitCommand(self.player1, 1, 2)  # World 1, need 10 industry
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("industry", msg)
+
+    def test_increase_pop_limit_valid(self):
+        """Valid pop limit increase should pass"""
+        self.worlds[0].industry = 20
+        self.worlds[0].metal = 20
+        cmd = IncreasePopulationLimitCommand(self.player1, 1, 2)  # World 1 owned by player1
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # BuildRobots validation tests
+    def test_build_robots_wrong_character(self):
+        """Only Berserker can build robots"""
+        self.player1.character_type = "Empire Builder"
+        cmd = BuildRobotsCommand(self.player1, 1, 10)  # World 1
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("Berserker", msg)
+
+    def test_build_robots_insufficient_industry(self):
+        """Cannot build robots without sufficient industry"""
+        self.player1.character_type = "Berserker"
+        self.worlds[0].industry = 2
+        cmd = BuildRobotsCommand(self.player1, 1, 10)  # World 1, need 5 industry (2 robots per industry)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("industry", msg)
+
+    def test_build_robots_valid(self):
+        """Valid robot build should pass"""
+        self.player1.character_type = "Berserker"
+        self.worlds[0].industry = 10
+        cmd = BuildRobotsCommand(self.player1, 1, 10)  # World 1 owned by player1
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # GiftFleet validation tests
+    def test_gift_fleet_not_owned(self):
+        """Cannot gift fleet you don't own"""
+        cmd = GiftFleetCommand(self.player1, 3, "Player2")  # Fleet 3 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_gift_fleet_nonexistent_player(self):
+        """Cannot gift to nonexistent player"""
+        cmd = GiftFleetCommand(self.player1, 1, "NonExistentPlayer")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("not found", msg)
+
+    def test_gift_fleet_to_self(self):
+        """Cannot gift fleet to yourself"""
+        cmd = GiftFleetCommand(self.player1, 1, "Player1")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("yourself", msg)
+
+    def test_gift_fleet_valid(self):
+        """Valid fleet gift should pass"""
+        cmd = GiftFleetCommand(self.player1, 1, "Player2")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # GiftWorld validation tests
+    def test_gift_world_not_owned(self):
+        """Cannot gift world you don't own"""
+        cmd = GiftWorldCommand(self.player1, 2, "Player2")  # World 2 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_gift_world_homeworld(self):
+        """Cannot gift homeworld"""
+        self.worlds[0].key = True
+        cmd = GiftWorldCommand(self.player1, 1, "Player2")  # World 1 owned by player1
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("homeworld", msg)
+
+    def test_gift_world_valid(self):
+        """Valid world gift should pass"""
+        self.worlds[0].key = False
+        cmd = GiftWorldCommand(self.player1, 1, "Player2")  # World 1 owned by player1
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # BuildPBB validation tests
+    def test_build_pbb_insufficient_ships(self):
+        """Cannot build PBB without 25+ ships"""
+        self.fleets[0].ships = 20
+        cmd = BuildPBBCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("25", msg)
+
+    def test_build_pbb_already_has_pbb(self):
+        """Cannot build PBB if fleet already has one"""
+        self.fleets[0].ships = 30
+        self.fleets[0].has_pbb = True
+        cmd = BuildPBBCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("already has", msg)
+
+    def test_build_pbb_valid(self):
+        """Valid PBB build should pass"""
+        self.fleets[0].ships = 30
+        self.fleets[0].has_pbb = False
+        cmd = BuildPBBCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # DropPBB validation tests
+    def test_drop_pbb_no_pbb(self):
+        """Cannot drop PBB if fleet doesn't have one"""
+        self.fleets[0].has_pbb = False
+        cmd = DropPBBCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("does not have", msg)
+
+    def test_drop_pbb_on_homeworld(self):
+        """Cannot drop PBB on homeworld"""
+        self.fleets[0].has_pbb = True
+        self.worlds[0].key = True
+        cmd = DropPBBCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("homeworld", msg)
+
+    def test_drop_pbb_valid(self):
+        """Valid PBB drop should pass"""
+        self.fleets[0].has_pbb = True
+        self.worlds[0].key = False
+        cmd = DropPBBCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # RobotAttack validation tests
+    def test_robot_attack_wrong_character(self):
+        """Only Berserker can use robot attack"""
+        self.player1.character_type = "Empire Builder"
+        cmd = RobotAttackCommand(self.player1, 1, 10)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("Berserker", msg)
+
+    def test_robot_attack_insufficient_ships(self):
+        """Cannot convert more ships than available"""
+        self.player1.character_type = "Berserker"
+        self.fleets[0].ships = 2
+        cmd = RobotAttackCommand(self.player1, 1, 10)  # Need 5 ships
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("only has", msg)
+
+    def test_robot_attack_valid(self):
+        """Valid robot attack should pass"""
+        self.player1.character_type = "Berserker"
+        self.fleets[0].ships = 10
+        cmd = RobotAttackCommand(self.player1, 1, 10)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # DeclareAlly validation tests
+    def test_declare_ally_nonexistent_player(self):
+        """Cannot ally with nonexistent player"""
+        cmd = DeclareAllyCommand(self.player1, "NonExistentPlayer")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("not found", msg)
+
+    def test_declare_ally_self(self):
+        """Cannot ally with yourself"""
+        cmd = DeclareAllyCommand(self.player1, "Player1")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("yourself", msg)
+
+    def test_declare_ally_valid(self):
+        """Valid ally declaration should pass"""
+        cmd = DeclareAllyCommand(self.player1, "Player2")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # DeclareNonAlly validation tests
+    def test_declare_non_ally_valid(self):
+        """Valid non-ally declaration should pass"""
+        cmd = DeclareNonAllyCommand(self.player1, "Player2")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # DeclareLoader validation tests
+    def test_declare_loader_self(self):
+        """Cannot declare yourself as loader"""
+        cmd = DeclareLoaderCommand(self.player1, "Player1")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("yourself", msg)
+
+    def test_declare_loader_valid(self):
+        """Valid loader declaration should pass"""
+        cmd = DeclareLoaderCommand(self.player1, "Player2")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # DeclareJihad validation tests
+    def test_declare_jihad_wrong_character(self):
+        """Only Apostle can declare Jihad"""
+        self.player1.character_type = "Empire Builder"
+        cmd = DeclareJihadCommand(self.player1, "Player2")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("Apostle", msg)
+
+    def test_declare_jihad_self(self):
+        """Cannot declare Jihad against yourself"""
+        self.player1.character_type = "Apostle"
+        cmd = DeclareJihadCommand(self.player1, "Player1")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("yourself", msg)
+
+    def test_declare_jihad_valid(self):
+        """Valid Jihad declaration should pass"""
+        self.player1.character_type = "Apostle"
+        cmd = DeclareJihadCommand(self.player1, "Player2")
         valid, msg = cmd.validate(self.game_state)
         self.assertTrue(valid)
 
