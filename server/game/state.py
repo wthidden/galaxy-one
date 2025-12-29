@@ -5,6 +5,7 @@ import random
 import logging
 from typing import Dict, Optional
 from .entities import World, Fleet, Artifact, Player
+from ..config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +32,33 @@ class GameState:
 
     def initialize_map(self):
         """Generate initial game map with worlds, connections, and artifacts."""
+        config = get_config()
+        world_settings = config.world_settings
+        artifact_settings = config.artifact_settings
+        fleet_settings = config.fleet_settings
+
         # Create worlds
+        industry_range = world_settings.get('industry_range', [0, 10])
+        mines_range = world_settings.get('mines_range', [0, 10])
+        limit_range = world_settings.get('limit_range', [10, 50])
+        population_range = world_settings.get('population_range', [0, 50])
+
         for i in range(1, self.map_size + 1):
             w = World(i)
-            w.industry = random.randint(0, 10)
-            w.mines = random.randint(0, 10)
-            w.limit = random.randint(10, 50)
-            w.population = random.randint(0, w.limit)
+            w.industry = random.randint(*industry_range)
+            w.mines = random.randint(*mines_range)
+            w.limit = random.randint(*limit_range)
+            # Population can't exceed limit
+            max_pop = min(population_range[1], w.limit)
+            w.population = random.randint(population_range[0], max_pop)
             self.worlds[i] = w
 
         # Create connections
+        min_conn = world_settings.get('min_connections', 2)
+        max_conn = world_settings.get('max_connections', 4)
+
         for i in range(1, self.map_size + 1):
-            num_connections = random.randint(2, 4)
+            num_connections = random.randint(min_conn, max_conn)
             while len(self.worlds[i].connections) < num_connections:
                 target = random.randint(1, self.map_size)
                 if target != i and target not in self.worlds[i].connections:
@@ -50,22 +66,24 @@ class GameState:
                     self.worlds[target].connections.append(i)
 
         # Create neutral fleets
-        for i in range(1, 256):
+        num_fleets = fleet_settings.get('num_neutral_fleets', 255)
+        for i in range(1, num_fleets + 1):
             w = self.worlds[random.randint(1, self.map_size)]
             f = Fleet(i, None, w)
             self.fleets[i] = f
 
         # Create artifacts
         aid = 1
-        types = [
+        types = artifact_settings.get('types', [
             "Platinum", "Ancient", "Vegan", "Blessed", "Arcturian",
             "Silver", "Titanium", "Gold", "Radiant", "Plastic"
-        ]
-        items = [
+        ])
+        items = artifact_settings.get('items', [
             "Lodestar", "Pyramid", "Stardust", "Shekel", "Crown",
             "Sword", "Moonstone", "Sepulchre", "Sphinx"
-        ]
+        ])
 
+        # Standard artifacts (type + item combinations)
         for t in types:
             for item in items:
                 name = f"{t} {item}"
@@ -75,15 +93,14 @@ class GameState:
                 w = self.worlds[random.randint(1, self.map_size)]
                 w.artifacts.append(a)
 
-        specials = [
-            "Treasure of Polaris", "Slippers of Venus", "Radioactive Isotope",
-            "Lesser of Two Evils", "Black Box"
-        ]
-        for i in range(1, 6):
-            specials.append(f"Nebula Scroll {i}")
-
-        for name in specials:
+        # Special artifacts
+        special_artifacts = artifact_settings.get('special_artifacts', [])
+        for special in special_artifacts:
+            name = special['name']
             a = Artifact(aid, name)
+            # Store special properties for future use
+            a.points = special.get('points', 15)
+            a.effect = special.get('effect', 'none')
             self.artifacts[aid] = a
             aid += 1
             w = self.worlds[random.randint(1, self.map_size)]

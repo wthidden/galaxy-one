@@ -1,0 +1,158 @@
+# StarWeb Game Configuration
+# This file controls game initialization and rules
+
+game:
+  # Map size (number of worlds)
+  map_size: 255
+
+  # Default turn timer settings (in seconds)
+  default_turn_duration: 3600  # 60 minutes
+  min_turn_duration: 300       # 5 minutes
+  max_turn_duration: 86400     # 24 hours
+
+  # Victory conditions
+  default_target_score: 8000
+
+  # Starting homeworld resources
+  homeworld:
+    population: 25
+    industry: 15
+    mines: 10
+    metal: 50
+    limit: 50
+    ships_per_fleet: 25
+    num_fleets: 5
+
+# World generation settings
+worlds:
+  # Resource ranges for neutral worlds
+  industry_range: [0, 10]
+  mines_range: [0, 10]
+  population_range: [0, 50]
+  limit_range: [10, 50]
+
+  # Connection settings
+  min_connections: 2
+  max_connections: 4
+
+  # Homeworld spacing (minimum hops between starting worlds)
+  min_homeworld_distance: 1
+
+# Fleet generation
+fleets:
+  # Number of initial neutral fleets
+  num_neutral_fleets: 255
+
+# Artifact settings
+artifacts:
+  # Standard artifact types and items
+  types:
+    - Platinum
+    - Ancient
+    - Vegan
+    - Blessed
+    - Arcturian
+    - Silver
+    - Titanium
+    - Gold
+    - Radiant
+    - Plastic
+
+  items:
+    - Lodestar
+    - Pyramid
+    - Stardust
+    - Shekel
+    - Crown
+    - Sword
+    - Moonstone
+    - Sepulchre
+    - Sphinx
+
+  # Special artifacts with unique properties
+  special_artifacts:
+    - name: "Treasure of Polaris"
+      points: 50
+      effect: "navigation_bonus"  # Future: bonus to movement range
+
+    - name: "Slippers of Venus"
+      points: 30
+      effect: "stealth"  # Future: fleet harder to detect
+
+    - name: "Radioactive Isotope"
+      points: 15
+      effect: "weapon_boost"  # Future: +10% combat damage
+
+    - name: "Lesser of Two Evils"
+      points: -10
+      effect: "curse"  # Negative points
+
+    - name: "Black Box"
+      points: 100
+      effect: "intelligence"  # Future: reveals enemy info
+
+    - name: "Nebula Scroll 1"
+      points: 25
+      effect: "knowledge"
+
+    - name: "Nebula Scroll 2"
+      points: 25
+      effect: "knowledge"
+
+    - name: "Nebula Scroll 3"
+      points: 25
+      effect: "knowledge"
+
+    - name: "Nebula Scroll 4"
+      points: 25
+      effect: "knowledge"
+
+    - name: "Nebula Scroll 5"
+      points: 25
+      effect: "knowledge"
+
+  # Scoring for standard artifacts (by type)
+  artifact_points:
+    Ancient: 30
+    Pyramid: 30
+    "Ancient Pyramid": 90  # Combination bonus
+    default: 15
+
+  # Whether to place artifacts on homeworlds
+  allow_on_homeworlds: false
+
+# Combat settings
+combat:
+  # Damage ratios
+  ship_damage_ratio: 1.0
+  ambush_bonus: 1.5
+
+  # Bombardment settings
+  bombardment_efficiency: 0.8
+
+# Production settings
+production:
+  metal_per_mine: 2
+  ships_per_industry: 1
+  cargo_per_industry: 1
+  population_growth_rate: 0.05
+
+# Character type modifiers
+characters:
+  "Empire Builder":
+    industry_bonus: true  # 4 industry per build instead of 5
+
+  "Merchant":
+    cargo_capacity_multiplier: 2  # 2 cargo per ship instead of 1
+
+  "Pirate":
+    capture_ratio: 3  # 3:1 ratio to auto-capture fleets
+
+  "Artifact Collector":
+    no_plastic_penalty: true
+
+  "Berserker":
+    can_create_robots: true
+
+  "Apostle":
+    conversion_rate: 0.1  # 10% chance per ship
