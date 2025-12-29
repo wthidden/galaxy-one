@@ -340,6 +340,8 @@ class FireCommand(Command):
             target = game_state.get_fleet(self.target_id)
             if not target:
                 return False, f"Target fleet {self.target_id} does not exist"
+            if target.owner == self.player:
+                return False, "Cannot fire at your own fleet"
             if target.world != fleet.world:
                 return False, "Target fleet must be at same world"
 

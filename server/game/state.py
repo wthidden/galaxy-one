@@ -219,3 +219,9 @@ def reset_game_state():
     global _game_state
     _game_state = GameState()
     _game_state.initialize_map()
+
+
+def set_game_state(game_state: GameState):
+    """Set the global game state (useful for testing)."""
+    global _game_state
+    _game_state = game_state
