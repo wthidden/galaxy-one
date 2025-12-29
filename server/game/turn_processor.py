@@ -6,7 +6,7 @@ import logging
 import time
 from .state import get_game_state
 from .mechanics.combat import execute_fire_order, execute_defense_fire_order
-from .mechanics.movement import execute_move_order, set_ambush
+from .mechanics.movement import execute_move_order, set_ambush, execute_probe_order
 from .mechanics.production import (
     execute_build_order,
     execute_transfer_order,
@@ -14,6 +14,9 @@ from .mechanics.production import (
     execute_transfer_artifact_order,
     execute_load_order,
     execute_unload_order,
+    execute_scrap_ships_order,
+    execute_jettison_order,
+    execute_consumer_goods_order,
     process_world_production,
     calculate_player_score
 )
@@ -100,6 +103,18 @@ async def process_turn():
     for order in orders_by_type.get("UNLOAD", []):
         await execute_unload_order(order)
 
+    # 4b. Jettison cargo
+    for order in orders_by_type.get("JETTISON", []):
+        await execute_jettison_order(order)
+
+    # 4c. Unload consumer goods (Merchant scoring)
+    for order in orders_by_type.get("UNLOAD_CONSUMER_GOODS", []):
+        await execute_consumer_goods_order(order)
+
+    # 4d. Scrap ships to industry (before builds so industry can be used)
+    for order in orders_by_type.get("SCRAP_SHIPS", []):
+        await execute_scrap_ships_order(order)
+
     # 5. Builds (before combat)
     for order in orders_by_type.get("BUILD", []):
         await execute_build_order(order)
@@ -118,6 +133,10 @@ async def process_turn():
         fleet = game_state.get_fleet(fleet_id)
         if fleet:
             fleet.is_ambushing = True
+
+    # 7b. Probe orders (scout adjacent worlds before movement)
+    for order in orders_by_type.get("PROBE", []):
+        await execute_probe_order(order)
 
     # 8. Move orders (last because they can trigger ambushes)
     for order in orders_by_type.get("MOVE", []):

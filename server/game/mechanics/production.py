@@ -708,3 +708,134 @@ def _score_generic(player):
         score += fleet.cargo
 
     return score
+
+
+async def execute_scrap_ships_order(order: dict):
+    """
+    Execute a SCRAP_SHIPS order (W#S#).
+    Convert ISHIPS to industry.
+
+    Args:
+        order: Scrap ships order dict
+    """
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    player = order["player"]
+    world_id = order["world_id"]
+    amount = order["amount"]
+
+    world = game_state.get_world(world_id)
+    if not world or world.owner != player:
+        return
+
+    # Calculate ships needed
+    is_empire_builder = player.character_type == "Empire Builder"
+    ships_per_industry = 4 if is_empire_builder else 6
+    ships_needed = amount * ships_per_industry
+
+    if world.iships < ships_needed:
+        return
+
+    # Scrap ships and create industry
+    world.iships -= ships_needed
+    world.industry += amount
+
+    await sender.send_event(
+        player,
+        f"W{world_id}: Scrapped {ships_needed} ISHIPS to create {amount} industry",
+        "production"
+    )
+    logger.info(f"W{world_id}: Scrapped {ships_needed} ISHIPS -> {amount} industry")
+
+
+async def execute_jettison_order(order: dict):
+    """
+    Execute a JETTISON order (F#J or F#J#).
+    Destroy cargo from fleet.
+
+    Args:
+        order: Jettison order dict
+    """
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    player = order["player"]
+    fleet_id = order["fleet_id"]
+    amount = order.get("amount")
+
+    fleet = game_state.get_fleet(fleet_id)
+    if not fleet or fleet.owner != player or fleet.cargo == 0:
+        return
+
+    # Jettison specified amount or all
+    if amount is None or amount > fleet.cargo:
+        amount = fleet.cargo
+
+    fleet.cargo -= amount
+
+    await sender.send_event(
+        player,
+        f"F{fleet_id}: Jettisoned {amount} cargo",
+        "logistics"
+    )
+    logger.info(f"F{fleet_id}: Jettisoned {amount} cargo")
+
+
+async def execute_consumer_goods_order(order: dict):
+    """
+    Execute an UNLOAD_CONSUMER_GOODS order (F#N or F#N#).
+    Merchant-only: Unload cargo as consumer goods for points.
+
+    Args:
+        order: Consumer goods order dict
+    """
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    player = order["player"]
+    fleet_id = order["fleet_id"]
+    amount = order.get("amount")
+
+    # Only Merchants can deliver consumer goods
+    if player.character_type != "Merchant":
+        return
+
+    fleet = game_state.get_fleet(fleet_id)
+    if not fleet or fleet.owner != player or fleet.cargo == 0:
+        return
+
+    world = fleet.world
+
+    # Calculate amount to unload
+    if amount is None or amount > fleet.cargo:
+        amount = fleet.cargo
+
+    # Merchant scoring for consumer goods:
+    # 10 points first time, 8 second, 5 third, 3 fourth, 1 fifth+
+    # Track deliveries per world
+    if not hasattr(world, 'consumer_goods_deliveries'):
+        world.consumer_goods_deliveries = {}
+
+    delivery_count = world.consumer_goods_deliveries.get(player.id, 0)
+    
+    # Points based on delivery number
+    points_schedule = [10, 8, 5, 3, 1]
+    if delivery_count < len(points_schedule):
+        points = points_schedule[delivery_count] * amount
+    else:
+        points = 1 * amount  # 1 point for 5th+ delivery
+
+    # Award points
+    player.score += points
+    world.consumer_goods_deliveries[player.id] = delivery_count + 1
+
+    # Unload cargo
+    fleet.cargo -= amount
+
+    await sender.send_event(
+        player,
+        f"F{fleet_id}: Delivered {amount} consumer goods to W{world.id} for {points} points!",
+        "merchant"
+    )
+    logger.info(f"F{fleet_id}: Merchant delivered {amount} consumer goods for {points} points")

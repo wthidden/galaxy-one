@@ -137,3 +137,98 @@ async def set_ambush(fleet_id: int, player):
     fleet = game_state.get_fleet(fleet_id)
     if fleet and fleet.owner == player:
         fleet.is_ambushing = True
+
+
+async def execute_probe_order(order: dict):
+    """
+    Execute a PROBE order (F#P#, I#P#, P#P#).
+    Uses 1 ship to scout an adjacent world before movement.
+
+    Args:
+        order: Probe order dict
+    """
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    player = order["player"]
+    source_type = order["source_type"]  # "F", "I", or "P"
+    source_id = order["source_id"]
+    target_world_id = order["target_world"]
+
+    target_world = game_state.get_world(target_world_id)
+    if not target_world:
+        return
+
+    # Execute probe based on source type
+    if source_type == "F":
+        # Fleet probe
+        fleet = game_state.get_fleet(source_id)
+        if not fleet or fleet.owner != player or fleet.ships < 1:
+            return
+
+        # Spend 1 ship for the probe
+        fleet.ships -= 1
+
+        # Send probe information
+        probe_info = f"Probe of W{target_world_id}: "
+        probe_info += f"Pop={target_world.population}, "
+        probe_info += f"Ind={target_world.industry}, "
+        probe_info += f"Metal={target_world.metal}, "
+        probe_info += f"Mines={target_world.mines}, "
+        probe_info += f"I{target_world.iships}/P{target_world.pships}"
+
+        if target_world.owner:
+            probe_info += f" (owned by {target_world.owner.name})"
+        else:
+            probe_info += " (neutral)"
+
+        # Count fleets at world
+        fleets_at_world = [f for f in game_state.fleets.values() if f.world.id == target_world_id and f.ships > 0]
+        if fleets_at_world:
+            probe_info += f", {len(fleets_at_world)} fleets present"
+
+        # Count artifacts
+        if target_world.artifacts:
+            probe_info += f", {len(target_world.artifacts)} artifacts"
+
+        await sender.send_event(player, probe_info, "probe")
+        logger.info(f"F{source_id} probed W{target_world_id}")
+
+    else:
+        # Defense probe (I or P)
+        world = game_state.get_world(source_id)
+        if not world or world.owner != player:
+            return
+
+        # Spend 1 defense ship
+        if source_type == "I":
+            if world.iships < 1:
+                return
+            world.iships -= 1
+        elif source_type == "P":
+            if world.pships < 1:
+                return
+            world.pships -= 1
+
+        # Send probe information (same as fleet probe)
+        probe_info = f"Probe of W{target_world_id}: "
+        probe_info += f"Pop={target_world.population}, "
+        probe_info += f"Ind={target_world.industry}, "
+        probe_info += f"Metal={target_world.metal}, "
+        probe_info += f"Mines={target_world.mines}, "
+        probe_info += f"I{target_world.iships}/P{target_world.pships}"
+
+        if target_world.owner:
+            probe_info += f" (owned by {target_world.owner.name})"
+        else:
+            probe_info += " (neutral)"
+
+        fleets_at_world = [f for f in game_state.fleets.values() if f.world.id == target_world_id and f.ships > 0]
+        if fleets_at_world:
+            probe_info += f", {len(fleets_at_world)} fleets present"
+
+        if target_world.artifacts:
+            probe_info += f", {len(target_world.artifacts)} artifacts"
+
+        await sender.send_event(player, probe_info, "probe")
+        logger.info(f"{source_type}SHIPS@W{source_id} probed W{target_world_id}")

@@ -446,6 +446,188 @@ class DefenseFireCommand(Command):
             return f"{defense} Fire at Converts"
 
 
+class ProbeCommand(Command):
+    """Probe an adjacent world (F#P#, I#P#, P#P#)."""
+
+    def __init__(self, player, source_type: str, source_id: int, target_world: int):
+        super().__init__(player)
+        self.source_type = source_type  # "F", "I", or "P"
+        self.source_id = source_id  # Fleet ID or World ID
+        self.target_world = target_world
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        if self.source_type == "F":
+            # Fleet probe
+            fleet = game_state.get_fleet(self.source_id)
+            if not fleet:
+                return False, f"Fleet {self.source_id} does not exist"
+            if fleet.owner != self.player:
+                return False, f"You do not own fleet {self.source_id}"
+            if fleet.ships < 1:
+                return False, f"Fleet {self.source_id} has no ships"
+
+            # Check target is adjacent
+            current_world = fleet.world
+            if self.target_world not in current_world.connections:
+                return False, f"World {self.target_world} is not adjacent to {current_world.id}"
+
+        else:
+            # Defense probe (I or P)
+            world = game_state.get_world(self.source_id)
+            if not world:
+                return False, f"World {self.source_id} does not exist"
+            if world.owner != self.player:
+                return False, f"You do not own world {self.source_id}"
+
+            # Check we have defense ships
+            if self.source_type == "I":
+                if world.iships < 1:
+                    return False, f"World {self.source_id} has no ISHIPS"
+            elif self.source_type == "P":
+                if world.pships < 1:
+                    return False, f"World {self.source_id} has no PSHIPS"
+
+            # Check target is adjacent
+            if self.target_world not in world.connections:
+                return False, f"World {self.target_world} is not adjacent to {self.source_id}"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "PROBE",
+            "player": self.player,
+            "source_type": self.source_type,
+            "source_id": self.source_id,
+            "target_world": self.target_world
+        }
+
+    def get_description(self) -> str:
+        if self.source_type == "F":
+            return f"F{self.source_id} Probe W{self.target_world}"
+        else:
+            return f"{self.source_type}SHIPS@W{self.source_id} Probe W{self.target_world}"
+
+
+class ScrapShipsCommand(Command):
+    """Scrap ships to make industry (W#S#)."""
+
+    def __init__(self, player, world_id: int, amount: int):
+        super().__init__(player)
+        self.world_id = world_id
+        self.amount = amount  # Amount of industry to create
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        from ..config import get_config
+        config = get_config()
+
+        world = game_state.get_world(self.world_id)
+        if not world:
+            return False, f"World {self.world_id} does not exist"
+        if world.owner != self.player:
+            return False, f"You do not own world {self.world_id}"
+
+        # Check if player is empire builder (gets bonus)
+        is_empire_builder = self.player.character_type == "Empire Builder"
+        ships_per_industry = 4 if is_empire_builder else 6
+
+        # Check we have enough ISHIPS to scrap
+        ships_needed = self.amount * ships_per_industry
+        if world.iships < ships_needed:
+            return False, f"Need {ships_needed} ISHIPS to create {self.amount} industry (have {world.iships})"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "SCRAP_SHIPS",
+            "player": self.player,
+            "world_id": self.world_id,
+            "amount": self.amount
+        }
+
+    def get_description(self) -> str:
+        return f"W{self.world_id} Scrap ships to create {self.amount} industry"
+
+
+class JettisonCommand(Command):
+    """Jettison cargo (F#J or F#J#)."""
+
+    def __init__(self, player, fleet_id: int, amount: Optional[int] = None):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+        self.amount = amount  # None means jettison all
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        fleet = game_state.get_fleet(self.fleet_id)
+        if not fleet:
+            return False, f"Fleet {self.fleet_id} does not exist"
+        if fleet.owner != self.player:
+            return False, f"You do not own fleet {self.fleet_id}"
+        if fleet.cargo == 0:
+            return False, f"Fleet {self.fleet_id} has no cargo"
+
+        if self.amount and self.amount > fleet.cargo:
+            return False, f"Fleet {self.fleet_id} only has {fleet.cargo} cargo"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "JETTISON",
+            "player": self.player,
+            "fleet_id": self.fleet_id,
+            "amount": self.amount
+        }
+
+    def get_description(self) -> str:
+        if self.amount:
+            return f"F{self.fleet_id} Jettison {self.amount} cargo"
+        else:
+            return f"F{self.fleet_id} Jettison all cargo"
+
+
+class UnloadConsumerGoodsCommand(Command):
+    """Unload cargo as consumer goods (F#N or F#N#)."""
+
+    def __init__(self, player, fleet_id: int, amount: Optional[int] = None):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+        self.amount = amount  # None means all
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        fleet = game_state.get_fleet(self.fleet_id)
+        if not fleet:
+            return False, f"Fleet {self.fleet_id} does not exist"
+        if fleet.owner != self.player:
+            return False, f"You do not own fleet {self.fleet_id}"
+        if fleet.cargo == 0:
+            return False, f"Fleet {self.fleet_id} has no cargo"
+
+        if self.amount and self.amount > fleet.cargo:
+            return False, f"Fleet {self.fleet_id} only has {fleet.cargo} cargo"
+
+        # Must be Merchant to use consumer goods
+        if self.player.character_type != "Merchant":
+            return False, "Only Merchants can deliver consumer goods"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "UNLOAD_CONSUMER_GOODS",
+            "player": self.player,
+            "fleet_id": self.fleet_id,
+            "amount": self.amount
+        }
+
+    def get_description(self) -> str:
+        if self.amount:
+            return f"F{self.fleet_id} Unload {self.amount} consumer goods"
+        else:
+            return f"F{self.fleet_id} Unload all as consumer goods"
+
+
 class LoadCommand(Command):
     """Load population onto fleet as cargo."""
 

@@ -15,7 +15,11 @@ from .commands import (
     UnloadCommand,
     FireCommand,
     DefenseFireCommand,
-    AmbushCommand
+    AmbushCommand,
+    ProbeCommand,
+    ScrapShipsCommand,
+    JettisonCommand,
+    UnloadConsumerGoodsCommand
 )
 
 
@@ -202,6 +206,47 @@ def parse_migrate(player, command_text: str, match: re.Match) -> Command:
     amount = int(match.group(2))
     dest_world = int(match.group(3))
     return MigrateCommand(player, world_id, amount, dest_world)
+
+
+@_registry.register(r"^F(\d+)P(\d+)$")
+def parse_fleet_probe(player, command_text: str, match: re.Match) -> Command:
+    """Parse: F5P10"""
+    fleet_id = int(match.group(1))
+    target_world = int(match.group(2))
+    return ProbeCommand(player, "F", fleet_id, target_world)
+
+
+@_registry.register(r"^([IP])(\d+)P(\d+)$")
+def parse_defense_probe(player, command_text: str, match: re.Match) -> Command:
+    """Parse: I5P10, P5P10"""
+    defense_type = match.group(1)
+    world_id = int(match.group(2))
+    target_world = int(match.group(3))
+    return ProbeCommand(player, defense_type, world_id, target_world)
+
+
+@_registry.register(r"^W(\d+)S(\d+)$")
+def parse_scrap_ships(player, command_text: str, match: re.Match) -> Command:
+    """Parse: W5S3 - Scrap ships to make 3 industry"""
+    world_id = int(match.group(1))
+    amount = int(match.group(2))
+    return ScrapShipsCommand(player, world_id, amount)
+
+
+@_registry.register(r"^F(\d+)J(\d+)?$")
+def parse_jettison(player, command_text: str, match: re.Match) -> Command:
+    """Parse: F5J or F5J10"""
+    fleet_id = int(match.group(1))
+    amount = int(match.group(2)) if match.group(2) else None
+    return JettisonCommand(player, fleet_id, amount)
+
+
+@_registry.register(r"^F(\d+)N(\d+)?$")
+def parse_consumer_goods(player, command_text: str, match: re.Match) -> Command:
+    """Parse: F5N or F5N10"""
+    fleet_id = int(match.group(1))
+    amount = int(match.group(2)) if match.group(2) else None
+    return UnloadConsumerGoodsCommand(player, fleet_id, amount)
 
 
 def get_command_parser():
