@@ -151,14 +151,37 @@ class MessageHandler {
             // Update content with markdown parsing
             adminContent.innerHTML = this._parseMarkdown(data.text);
 
-            // Show panel if it was hidden
+            // Show panel (expand if collapsed)
             adminPanel.style.display = 'block';
+            adminPanel.classList.remove('collapsed');
 
             // Add flash animation to indicate new message
             adminPanel.classList.add('flash');
             setTimeout(() => {
                 adminPanel.classList.remove('flash');
             }, 1000);
+
+            // Auto-collapse after 10 seconds
+            if (adminPanel._collapseTimeout) {
+                clearTimeout(adminPanel._collapseTimeout);
+            }
+            adminPanel._collapseTimeout = setTimeout(() => {
+                adminPanel.classList.add('collapsed');
+            }, 10000);
+
+            // Click to re-expand
+            adminPanel.onclick = () => {
+                if (adminPanel.classList.contains('collapsed')) {
+                    adminPanel.classList.remove('collapsed');
+                    // Auto-collapse again after 10 seconds
+                    if (adminPanel._collapseTimeout) {
+                        clearTimeout(adminPanel._collapseTimeout);
+                    }
+                    adminPanel._collapseTimeout = setTimeout(() => {
+                        adminPanel.classList.add('collapsed');
+                    }, 10000);
+                }
+            };
         }
     }
 }
