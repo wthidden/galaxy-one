@@ -11,6 +11,8 @@ COPY server/ ./server/
 COPY client/ ./client/
 COPY *.py ./
 COPY admin_message.txt ./
+COPY game_config.yaml ./
+COPY PLAYER_MANUAL.md ./
 
 # Create data directory for persistence
 RUN mkdir -p /app/data
