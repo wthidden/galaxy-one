@@ -194,6 +194,24 @@ Restore game from backup.
 - Restores from specified backup
 - Validates restored state
 
+### view-bug-reports
+
+View bug reports submitted by players.
+
+```bash
+./starweb-admin view-bug-reports
+./starweb-admin view-bug-reports --limit 50
+```
+
+Shows:
+- Player name and ID
+- Timestamp of submission
+- Game turn when bug occurred
+- Bug description
+- Character type (for context)
+
+Bug reports are stored in `data/bug_reports.jsonl` (JSON Lines format, one report per line).
+
 ## Workflow Examples
 
 ### Starting a New Game
@@ -242,6 +260,26 @@ docker-compose up -d
 # If state is corrupted, restore from backup:
 ./starweb-admin restore-state data/gamestate.json.bak
 ```
+
+### Monitoring Bug Reports
+
+Players can submit bug reports from the game UI using the 🐛 button.
+
+```bash
+# View recent reports
+./starweb-admin view-bug-reports
+
+# View more reports
+./starweb-admin view-bug-reports --limit 50
+
+# Read raw reports file
+cat data/bug_reports.jsonl | jq .
+
+# Search for specific issues
+grep "fleet" data/bug_reports.jsonl
+```
+
+**Tip**: Check bug reports regularly to identify common issues and improve the game.
 
 ### Testing Different Configurations
 

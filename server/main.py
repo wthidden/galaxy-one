@@ -160,6 +160,11 @@ async def main():
     message_router = get_message_router()
     message_router.register_handler("command", handle_command_message)
 
+    # Register bug report handler
+    from .bug_reporter import get_bug_reporter
+    bug_reporter = get_bug_reporter()
+    message_router.register_handler("bug_report", bug_reporter.handle_bug_report)
+
     # Register event handlers
     logger.info("Registering event handlers...")
     register_all_handlers()

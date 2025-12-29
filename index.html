@@ -83,10 +83,24 @@
                 <input type="text" id="command-input" placeholder="Enter command (e.g., F1W2, HELP, TURN)">
                 <button id="help-btn" title="Show help">?</button>
                 <button id="manual-btn" title="Download Player Manual">📖</button>
+                <button id="bug-report-btn" title="Report a bug">🐛</button>
                 <button id="send-btn">Send</button>
             </div>
         </div>
         <div id="log"></div>
+    </div>
+
+    <!-- Bug Report Modal -->
+    <div id="bug-report-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Report a Bug 🐛</h2>
+            <p>Please describe the bug you encountered. Include what you were trying to do and what happened instead.</p>
+            <textarea id="bug-description" rows="8" placeholder="Example: When I tried to move Fleet 5 to World 10, the fleet disappeared and I got an error message..."></textarea>
+            <div class="modal-buttons">
+                <button id="bug-submit-btn" class="primary-btn">Submit Report</button>
+                <button id="bug-cancel-btn" class="secondary-btn">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- Modular JavaScript Architecture -->

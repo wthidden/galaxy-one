@@ -242,6 +242,50 @@ function setupUIListeners() {
         window.open('/manual', '_blank');
     });
 
+    // Bug report button
+    const bugReportBtn = document.getElementById('bug-report-btn');
+    const bugReportModal = document.getElementById('bug-report-modal');
+    const bugDescription = document.getElementById('bug-description');
+    const bugSubmitBtn = document.getElementById('bug-submit-btn');
+    const bugCancelBtn = document.getElementById('bug-cancel-btn');
+
+    bugReportBtn?.addEventListener('click', () => {
+        // Show modal
+        bugReportModal.style.display = 'flex';
+        bugDescription.value = '';
+        bugDescription.focus();
+    });
+
+    bugCancelBtn?.addEventListener('click', () => {
+        // Hide modal
+        bugReportModal.style.display = 'none';
+    });
+
+    bugSubmitBtn?.addEventListener('click', () => {
+        const description = bugDescription.value.trim();
+        if (description) {
+            // Send bug report to server
+            webSocketClient.send({
+                type: 'bug_report',
+                description: description,
+                timestamp: new Date().toISOString(),
+                game_turn: gameState.gameTurn || 0,
+                player_name: gameState.playerName || 'Unknown'
+            });
+
+            // Hide modal and show confirmation
+            bugReportModal.style.display = 'none';
+            addEventLog('Bug report submitted. Thank you for helping improve StarWeb!', 'info');
+        }
+    });
+
+    // Close modal when clicking outside
+    bugReportModal?.addEventListener('click', (e) => {
+        if (e.target === bugReportModal) {
+            bugReportModal.style.display = 'none';
+        }
+    });
+
     commandInput?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             sendBtn?.click();

@@ -8,6 +8,7 @@ Commands:
   validate-config       - Validate configuration file
   backup-state          - Backup current game state
   restore-state [file]  - Restore game state from backup
+  view-bug-reports      - View recent bug reports from players
 """
 import argparse
 import sys
@@ -228,6 +229,39 @@ def restore_state(args):
         return 1
 
 
+def view_bug_reports(args):
+    """View recent bug reports from players."""
+    from server.bug_reporter import BugReporter
+
+    reporter = BugReporter()
+    reports = reporter.get_recent_reports(limit=args.limit)
+
+    if not reports:
+        print("No bug reports found.")
+        return 0
+
+    print("=" * 80)
+    print(f"Bug Reports ({len(reports)} most recent)")
+    print("=" * 80)
+
+    for i, report in enumerate(reports, 1):
+        print(f"\n[Report #{i}]")
+        print(f"  Submitted:     {report['timestamp']}")
+        print(f"  Player:        {report['player_name']} (ID: {report['player_id']})")
+        print(f"  Character:     {report.get('character_type', 'Unknown')}")
+        print(f"  Game Turn:     {report['game_turn']}")
+        print(f"  Description:")
+        # Indent description
+        for line in report['description'].split('\n'):
+            print(f"    {line}")
+        print("-" * 80)
+
+    print(f"\nTotal reports in database: {reporter.get_report_count()}")
+    print(f"Reports file: {reporter.reports_file}")
+    print("=" * 80)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="StarWeb Game Management CLI",
@@ -258,6 +292,11 @@ def main():
     restore_state_parser = subparsers.add_parser('restore-state', help='Restore game state from backup')
     restore_state_parser.add_argument('backup_file', help='Path to backup file')
     restore_state_parser.set_defaults(func=restore_state)
+
+    # view-bug-reports command
+    view_reports_parser = subparsers.add_parser('view-bug-reports', help='View recent bug reports from players')
+    view_reports_parser.add_argument('--limit', type=int, default=20, help='Number of reports to show (default: 20)')
+    view_reports_parser.set_defaults(func=view_bug_reports)
 
     args = parser.parse_args()
 
