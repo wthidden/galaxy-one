@@ -31,7 +31,9 @@ class WorldList {
         } else {
             myWorlds.forEach(world => {
                 const isKey = world.key ? '🔑' : '';
-                const defenses = world.defenses || 0;
+                const iships = world.iships || 0;
+                const pships = world.pships || 0;
+                const defenseStr = `I${iships}/P${pships}`;
                 const industry = world.industry || 0;
                 const population = world.population || 0;
                 const artifacts = world.artifacts || [];
@@ -52,7 +54,7 @@ class WorldList {
                         <div class="world-stats">
                             <span title="Population">👥${population}</span>
                             <span title="Industry">🏭${industry}</span>
-                            <span title="Defenses">🛡️${defenses}</span>
+                            <span title="Defenses (Industry Ships/Population Ships)">🛡️${defenseStr}</span>
                             ${artifactStr}
                         </div>
                     </div>

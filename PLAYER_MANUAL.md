@@ -1,5 +1,7 @@
 # StarWeb Player Manual
 
+**Revision: 2.0 - December 2024**
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
@@ -30,10 +32,21 @@
 
 ### Joining a Game
 
-1. **Enter your name** in the login screen
-2. **Choose your character type** (see [Character Types](#character-types))
-3. **Set score goal** (default: 8000 points)
-4. **Click "Join Game"**
+**Command Format:** `JOIN <name> [turn_timer_minutes] [character_type]`
+
+**Examples:**
+```
+JOIN Alice EmpireBuilder               - Use defaults (60 min timer)
+JOIN Bob 30 Pirate                     - 30 minute preferred turn time
+JOIN Carol 120 ArtifactCollector       - 2 hour preferred turn time
+```
+
+**Parameters:**
+- `name`: Your player name
+- `turn_timer_minutes` (optional): Your preferred minimum time between turns (5-1440 minutes, default: 60)
+  - The actual turn duration will be the **average** of all players' preferences
+  - Or turns advance when all players press TURN (whichever comes first)
+- `character_type` (optional): One of: Empire Builder, Merchant, Pirate, ArtifactCollector, Berserker, Apostle (default: EmpireBuilder)
 
 ### First Steps
 
@@ -80,7 +93,8 @@ When you join, you'll start with:
 
 **My Worlds**
 - Lists all worlds you own
-- Shows population, industry, metal
+- Shows population, industry, defenses (I#/P# format)
+- 🔑 icon marks your homeworld
 - Click to select and view details
 
 **My Fleets**
@@ -403,14 +417,35 @@ SCUTTLE F5        - Destroy Fleet 5
 ### Turn Sequence
 
 1. **Order Submission**: Players enter commands
-2. **Ready Up**: Players mark turn ready (or timer expires)
-3. **Resolution**: Server processes all orders
-   - Movement
-   - Combat
-   - Production
+2. **Ready Up**: Players mark turn ready (or timer expires based on average player preference)
+3. **Resolution**: Server processes all orders in priority order:
+   - Unloading
+   - Ship transfers
    - Building
+   - Loading
+   - Combat (firing/ambushing)
+   - Movement
+   - **World Capture** (happens immediately - same turn as arrival!)
+   - Fleet captures
+   - Production
 4. **Updates**: Clients receive new game state
 5. **Next Turn**: Cycle repeats
+
+### World Capture Rules
+
+**Capture happens IMMEDIATELY when:**
+- You are the only player with ships (not at peace) at the world
+- The world has no enemy defensive ships (iships/pships)
+- The world has non-zero population
+
+**Defensive Ships Block Capture:**
+- Worlds with iships or pships cannot be captured by mere fleet presence
+- You must destroy all defensive ships first
+- Owner retains the world as long as they have iships/pships, even with no fleets
+
+**Building Defenses Claims Worlds:**
+- Building iships or pships on a neutral world **immediately** claims it
+- Ownership persists as long as defenses remain
 
 ### Combat
 
@@ -803,6 +838,72 @@ HELP W3           - World-specific help
 | TRANSFER | `F#T#F#` | Transfer ships |
 | CANCEL | `CANCEL #` | Cancel order |
 | SCUTTLE | `SCUTTLE F#` | Destroy fleet |
+
+---
+
+## Revision History
+
+### Version 2.0 - December 2024
+
+**Major Changes:**
+
+1. **Character-Specific Scoring System**
+   - Empire Builder: Corrected to 1 pt per 10 population (was 1 per 1), added 1 pt per mine
+   - Pirate: Added 3 points per key owned
+   - Artifact Collector: Implemented full artifact scoring (30 pts Ancient/Pyramid, 90 pts Ancient Pyramid, 15 pts others)
+   - All character types now have proper scoring matching official StarWeb rules
+
+2. **World Capture Mechanics**
+   - World capture now happens **immediately** when fleet arrives (same turn)
+   - Removed 1-turn delay for capturing neutral/undefended worlds
+   - Defensive ships (iships/pships) still prevent capture
+   - Zero population worlds cannot be owned
+
+3. **Artifact Transfer System**
+   - Fixed TRANSFER_ARTIFACT command to work with fleet presence
+   - LOAD/UNLOAD artifacts now work when you have a fleet at the world (not just ownership)
+   - Improved artifact access rules
+
+4. **Turn Timer System**
+   - Players can now specify preferred minimum turn time when joining
+   - Format: `JOIN <name> [minutes] [character_type]`
+   - Average of all players' preferences used as actual turn duration
+   - Default: 60 minutes if not specified
+   - Range: 5-1440 minutes (5 min to 24 hours)
+
+5. **Homeworld Improvements**
+   - Homeworlds are now guaranteed to be at least 1 hop apart
+   - Artifacts are never placed on starting homeworlds (relocated to neutral worlds)
+   - Homeworlds marked with 🔑 icon in world list
+
+6. **Defense Display Format**
+   - Defense display now shows `I#/P#` format (e.g., "I5/P3")
+   - Real-time updates when iships/pships change
+   - More informative tooltip: "Defenses (Industry Ships/Population Ships)"
+
+7. **Chat System**
+   - Added player-to-player chat functionality
+   - Admin message system with auto-collapse banner
+   - Message notifications in event log
+
+8. **UI Improvements**
+   - Multi-hop movement suggestions show only connected worlds
+   - Visual path tracking for complex move commands
+   - Reduced command suggestions dropdown size (60% smaller)
+   - Improved admin banner with auto-collapse (10 seconds)
+
+**Bug Fixes:**
+- Fixed world ownership mechanics with defensive ships
+- Fixed building defenses on neutral worlds (now claims world immediately)
+- Corrected command access checks for LOAD/UNLOAD/TRANSFER_ARTIFACT
+- Improved connection-aware pathfinding for multi-hop moves
+
+### Version 1.0 - Initial Release
+- Core game mechanics
+- Basic UI
+- Fleet and world management
+- Combat system
+- 6 character types
 
 ---
 

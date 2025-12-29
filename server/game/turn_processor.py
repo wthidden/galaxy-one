@@ -63,13 +63,8 @@ async def process_turn():
     game_state.game_turn += 1
     game_state.players_ready.clear()
 
-    # Adjust turn duration (increase for first 10 turns)
-    if game_state.game_turn <= 10 and game_state.game_turn % 2 == 0:
-        game_state.current_turn_duration = min(
-            MAX_TURN_DURATION,
-            game_state.current_turn_duration + 60
-        )
-
+    # Use average of all players' turn timer preferences
+    game_state.current_turn_duration = game_state.get_average_turn_duration_seconds()
     game_state.turn_end_time = time.time() + game_state.current_turn_duration
 
     # Collect all orders from all players

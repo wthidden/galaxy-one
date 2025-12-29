@@ -122,6 +122,19 @@ class GameState:
         """Get fleet by ID."""
         return self.fleets.get(fleet_id)
 
+    def get_average_turn_duration_seconds(self) -> int:
+        """
+        Calculate average turn duration from all players' preferences.
+        Returns duration in seconds.
+        """
+        players = [p for p in self.players.values() if p.name]  # Only joined players
+        if not players:
+            return 180  # Default 3 minutes if no players
+
+        total_minutes = sum(p.turn_timer_minutes for p in players)
+        avg_minutes = total_minutes / len(players)
+        return int(avg_minutes * 60)  # Convert to seconds
+
 
 # Global game state instance
 _game_state = None

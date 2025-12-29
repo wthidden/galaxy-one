@@ -123,3 +123,4 @@ class Player:
         self.known_worlds = {}
         self.orders = []
         self.last_state_snapshot = None
+        self.turn_timer_minutes = 60  # Player's preferred minimum turn time in minutes (default 60)

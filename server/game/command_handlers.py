@@ -112,15 +112,15 @@ async def handle_join(player, full_command, parts):
     event_bus = get_event_bus()
 
     if len(parts) < 2:
-        await sender.send_error(player, "Usage: JOIN <name> [score_vote] [type]")
+        await sender.send_error(player, "Usage: JOIN <name> [timer_minutes] [character_type]")
         return
 
-    # Parse command: JOIN <name> [score_vote] <type>
-    # Example: "JOIN Alice 8000 Empire Builder"
+    # Parse command: JOIN <name> [timer_minutes] <character_type>
+    # Example: "JOIN Alice 60 Empire Builder"
     full_args = " ".join(parts[1:])
 
     # Try to find character type at end
-    char_type = "Empire Builder"
+    char_type = "EmpireBuilder"
     name = full_args
 
     for ct in CHARACTER_TYPES:
@@ -129,9 +129,13 @@ async def handle_join(player, full_command, parts):
             name = full_args[:-(len(ct))].strip()
             break
 
-    # Remove score vote if present (just a number)
+    # Extract turn timer if present (a number)
+    turn_timer = 60  # Default 60 minutes
     name_parts = name.split()
     if name_parts and name_parts[-1].isdigit():
+        turn_timer = int(name_parts[-1])
+        # Clamp between 5 and 1440 minutes (5 min to 24 hours)
+        turn_timer = max(5, min(1440, turn_timer))
         name = " ".join(name_parts[:-1])
 
     if not name:
@@ -141,14 +145,34 @@ async def handle_join(player, full_command, parts):
     # Update player
     player.name = name
     player.character_type = char_type
+    player.turn_timer_minutes = turn_timer
 
-    # Find starting world
-    candidates = [w for w in game_state.worlds.values() if w.owner is None]
+    # Find starting world - must be at least 1 hop from other homeworlds
+    import random
+
+    # Get all existing homeworlds
+    existing_homeworlds = [w.id for w in game_state.worlds.values() if w.key and w.owner is not None]
+
+    # Build set of worlds that are too close (homeworlds + their direct neighbors)
+    excluded_worlds = set(existing_homeworlds)
+    for hw_id in existing_homeworlds:
+        hw = game_state.worlds[hw_id]
+        excluded_worlds.update(hw.connections)
+
+    # Find neutral worlds that are at least 1 hop from any existing homeworld
+    candidates = [w for w in game_state.worlds.values()
+                 if w.owner is None and w.id not in excluded_worlds]
+
     if candidates:
-        import random
         start_world = random.choice(candidates)
     else:
-        start_world = game_state.worlds[random.randint(1, game_state.map_size)]
+        # Fallback if no distant worlds available - just pick any neutral world
+        candidates = [w for w in game_state.worlds.values() if w.owner is None]
+        if candidates:
+            start_world = random.choice(candidates)
+        else:
+            # Last resort - pick any world
+            start_world = game_state.worlds[random.randint(1, game_state.map_size)]
 
     # Remove existing owner if any
     if start_world.owner:
@@ -166,6 +190,7 @@ async def handle_join(player, full_command, parts):
 
     # Setup homeworld
     start_world.owner = player
+    start_world.key = True  # Mark as homeworld
     start_world.population = HOMEWORLD_POPULATION
     start_world.industry = HOMEWORLD_INDUSTRY
     start_world.metal = HOMEWORLD_METAL
@@ -173,6 +198,19 @@ async def handle_join(player, full_command, parts):
     start_world.iships = HOMEWORLD_ISHIPS
     start_world.pships = HOMEWORLD_PSHIPS
     player.worlds.append(start_world)
+
+    # Homeworlds should not have artifacts - relocate any to neutral worlds
+    if start_world.artifacts:
+        import random
+        for artifact in list(start_world.artifacts):
+            # Find a neutral world to move it to
+            neutral_worlds = [w for w in game_state.worlds.values()
+                            if w.owner is None and w != start_world]
+            if neutral_worlds:
+                target_world = random.choice(neutral_worlds)
+                start_world.artifacts.remove(artifact)
+                target_world.artifacts.append(artifact)
+                logger.info(f"Relocated artifact {artifact.name} from homeworld {start_world.id} to neutral world {target_world.id}")
 
     # Update known worlds
     player.known_worlds[start_world.id] = game_state.game_turn
