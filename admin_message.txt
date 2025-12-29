@@ -1,0 +1,6 @@
+Welcome to StarWeb! 🚀
+
+Server is running smoothly. Have fun exploring the galaxy!
+
+Use SAY or CHAT to communicate with other players.
+Type HELP for commands.
