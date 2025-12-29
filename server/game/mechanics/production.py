@@ -404,8 +404,8 @@ async def execute_transfer_artifact_order(order: dict):
 
 def calculate_player_score(player):
     """
-    Calculate player's score based on their assets.
-    Score = worlds + industry + ships + artifacts + population
+    Calculate player's score based on their assets and character type.
+    Each character type has different scoring rules.
 
     Args:
         player: Player to calculate score for
@@ -414,40 +414,243 @@ def calculate_player_score(player):
         int: Calculated score
     """
     score = 0
+    char_type = player.character_type
+
+    # Character-specific scoring
+    if char_type == "EmpireBuilder":
+        score = _score_empire_builder(player)
+    elif char_type == "Merchant":
+        score = _score_merchant(player)
+    elif char_type == "Pirate":
+        score = _score_pirate(player)
+    elif char_type == "ArtifactCollector":
+        score = _score_artifact_collector(player)
+    elif char_type == "Berserker":
+        score = _score_berserker(player)
+    elif char_type == "Apostle":
+        score = _score_apostle(player)
+    else:
+        # Fallback to generic scoring
+        logger.warning(f"Unknown character type: {char_type}, using generic scoring")
+        score = _score_generic(player)
+
+    player.score = score
+    return score
+
+
+def _score_empire_builder(player):
+    """Empire Builder scoring: population/10, industry, mines, artifacts"""
+    score = 0
+
+    for world in player.worlds:
+        score += world.population // 10  # 1 point per 10 population
+        score += world.industry  # 1 point per industry
+        score += world.mines  # 1 point per mine
+
+    # Artifacts use standard scoring
+    score += _score_artifacts_standard(player, "Platinum", "Crown")
+
+    return score
+
+
+def _score_merchant(player):
+    """
+    Merchant scoring: metal unload points (transactional), CG points (transactional), artifacts.
+    Note: Transactional points (metal/CG unloads) are awarded when actions occur, not here.
+    """
+    score = 0
+
+    # Merchants only get points from transactions (handled elsewhere)
+    # and artifacts
+    score += _score_artifacts_standard(player, "Gold", "Shekel")
+
+    return score
+
+
+def _score_pirate(player):
+    """Pirate scoring: 3 points per key, plunder points (transactional), artifacts"""
+    score = 0
+
+    # 3 points per key owned
+    score += len(player.fleets) * 3
+
+    # Plundering points are transactional (handled elsewhere)
+
+    # Artifacts use standard scoring
+    score += _score_artifacts_standard(player, "Silver", "Lodestar")
+
+    return score
+
+
+def _score_artifact_collector(player):
+    """Artifact Collector scoring: artifacts only (special rules)"""
+    score = 0
+
+    # Collect all artifacts
+    artifacts = []
+    for world in player.worlds:
+        artifacts.extend(world.artifacts)
+    for fleet in player.fleets:
+        artifacts.extend(fleet.artifacts)
+
+    for artifact in artifacts:
+        name = artifact.name.upper()
+
+        # Special artifacts
+        if name == "TREASURE OF POLARIS":
+            score += 30
+        elif name == "SLIPPERS OF VENUS":
+            score += 30
+        elif name == "RADIOACTIVE ISOTOPE":
+            score += 30
+        elif name == "LESSER OF TWO EVILS":
+            score += 30
+        elif name == "BLACK BOX":
+            score += 30
+        elif "NEBULA SCROLLS" in name:
+            score += 30
+        # Standard artifacts
+        elif "ANCIENT" in name and "PYRAMID" in name:
+            score += 90  # Ancient Pyramid - greatest treasure
+        elif "ANCIENT" in name or "PYRAMID" in name:
+            # Don't count Plastic Pyramid
+            if "PLASTIC" not in name:
+                score += 30
+        elif "PLASTIC" in name:
+            score += 0  # No penalty for Artifact Collectors
+        else:
+            # Other standard non-plastic artifacts
+            score += 15
+
+    return score
+
+
+def _score_berserker(player):
+    """
+    Berserker scoring: 5 points/turn per robot world, kill points (transactional), artifacts.
+    Note: Kill points are awarded when kills occur, not here.
+    """
+    score = 0
+
+    # 5 points per turn for each robot world
+    for world in player.worlds:
+        if world.population_type == "robot":
+            score += 5
+
+    # Kill points are transactional (handled elsewhere)
+
+    # Artifacts use standard scoring
+    score += _score_artifacts_standard(player, "Titanium", "Sword")
+
+    return score
+
+
+def _score_apostle(player):
+    """Apostle scoring: 5 per world, +5 for fully converted worlds, 1 per 10 converts, artifacts"""
+    score = 0
+
+    # Count converts
+    total_converts = 0
+
+    for world in player.worlds:
+        # 5 points per world controlled
+        score += 5
+
+        # Check if entirely populated by converts
+        if world.population_type == "apostle" and world.population > 0:
+            # Additional 5 points for fully converted world
+            score += 5
+            total_converts += world.population
+        elif world.population_type == "apostle":
+            total_converts += world.population
+
+    # 1 point per 10 converts
+    score += total_converts // 10
+
+    # Martyr points are transactional (handled elsewhere)
+    # Shot penalty is transactional (handled elsewhere)
+
+    # Artifacts use standard scoring
+    score += _score_artifacts_standard(player, "Blessed", "Sepulchre")
+
+    return score
+
+
+def _score_artifacts_standard(player, category1, category2):
+    """
+    Standard artifact scoring for non-Artifact Collectors.
+
+    Args:
+        player: Player to score
+        category1: First artifact category (e.g., "Platinum")
+        category2: Second artifact category (e.g., "Crown")
+
+    Returns:
+        int: Artifact score
+    """
+    score = 0
+    category1 = category1.upper()
+    category2 = category2.upper()
+    greatest_treasure = f"{category1} {category2}"
+
+    # Collect all artifacts
+    artifacts = []
+    for world in player.worlds:
+        artifacts.extend(world.artifacts)
+    for fleet in player.fleets:
+        artifacts.extend(fleet.artifacts)
+
+    for artifact in artifacts:
+        name = artifact.name.upper()
+
+        # Special artifacts
+        if name == "TREASURE OF POLARIS":
+            score += 20
+        elif name == "SLIPPERS OF VENUS":
+            score += 10
+        elif name == "RADIOACTIVE ISOTOPE":
+            score -= 30
+        elif name == "LESSER OF TWO EVILS":
+            score -= 15
+        elif name == "BLACK BOX":
+            score += 0
+        elif "NEBULA SCROLLS" in name:
+            score += 0  # End-game bonus only (not implemented yet)
+        # Greatest Treasure
+        elif name == greatest_treasure:
+            score += 15
+        # Standard artifacts from your categories
+        elif category1 in name or category2 in name:
+            # Don't count Plastic items as part of category
+            if "PLASTIC" not in name:
+                score += 5
+        # Plastic penalty
+        elif "PLASTIC" in name:
+            score -= 10
+        # Other standard artifacts
+        else:
+            score += 0
+
+    return score
+
+
+def _score_generic(player):
+    """Generic fallback scoring (old system)"""
+    score = 0
 
     # Worlds: 10 points each
     score += len(player.worlds) * 10
 
     # Industry, ships, population from owned worlds
     for world in player.worlds:
-        score += world.industry * 2  # 2 points per industry
-        score += world.iships  # 1 point per IShip
-        score += world.pships  # 1 point per PShip
-        score += world.population  # 1 point per population
+        score += world.industry * 2
+        score += world.iships
+        score += world.pships
+        score += world.population
 
     # Ships in fleets
     for fleet in player.fleets:
-        score += fleet.ships  # 1 point per ship
-        score += fleet.cargo  # 1 point per cargo (population in transit)
+        score += fleet.ships
+        score += fleet.cargo
 
-    # Artifacts
-    artifact_count = 0
-    special_artifact_count = 0
-    for world in player.worlds:
-        for artifact in world.artifacts:
-            if hasattr(artifact, 'type') and artifact.type == "special":
-                special_artifact_count += 1
-            else:
-                artifact_count += 1
-    for fleet in player.fleets:
-        for artifact in fleet.artifacts:
-            if hasattr(artifact, 'type') and artifact.type == "special":
-                special_artifact_count += 1
-            else:
-                artifact_count += 1
-
-    score += artifact_count * 10  # 10 points per regular artifact
-    score += special_artifact_count * 50  # 50 points per special artifact
-
-    player.score = score
     return score
