@@ -137,6 +137,14 @@ class CommandInput {
     updateHints(result) {
         let html = '';
 
+        // Show multi-hop path indicator for move commands
+        if (result.context && result.context.stage === 'move_path' && result.suggestions && result.suggestions.length > 0) {
+            const firstSuggestion = result.suggestions[0];
+            if (firstSuggestion.pathInfo) {
+                html += `<div class="hint-path">🗺️ ${this.escapeHtml(firstSuggestion.pathInfo)} → ?</div>`;
+            }
+        }
+
         // Parse errors
         if (result.errors && result.errors.length > 0) {
             html += '<div class="hint-errors">';

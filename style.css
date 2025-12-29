@@ -1028,6 +1028,16 @@ canvas {
     margin: 4px 0;
 }
 
+.hint-path {
+    color: #4da6ff;
+    font-weight: 600;
+    margin: 2px 0;
+    padding: 2px 4px;
+    background-color: rgba(77, 166, 255, 0.1);
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
 .hint-errors .error,
 .hint-validation .error {
     color: #f44336;

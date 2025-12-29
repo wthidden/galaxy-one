@@ -141,16 +141,48 @@ class AutoComplete {
                 break;
 
             case 'move_path':
-                // Suggest world IDs
-                const allWorlds = Object.values(state.worlds || {});
-                allWorlds.forEach(world => {
-                    suggestions.push({
-                        text: input + (input.match(/W\d*$/) ? '' : 'W') + world.id,
-                        description: `World ${world.id} (${world.owner || 'neutral'})`,
-                        type: 'world',
-                        complete: false
+                // Parse current path to determine last world
+                const pathWorlds = this.extractMovePath(input);
+                let currentWorld = null;
+
+                if (pathWorlds.length > 0) {
+                    // Get the last world in the path
+                    const lastWorldId = pathWorlds[pathWorlds.length - 1];
+                    currentWorld = state.worlds?.[lastWorldId];
+                } else {
+                    // No path yet, determine starting world from fleet location
+                    const fleetId = this.extractFleetId(input);
+                    const fleet = state.fleets?.[fleetId];
+                    if (fleet && fleet.world !== undefined) {
+                        currentWorld = state.worlds?.[fleet.world];
+                    }
+                }
+
+                // Only suggest connected worlds
+                if (currentWorld && currentWorld.connections) {
+                    currentWorld.connections.forEach(worldId => {
+                        const targetWorld = state.worlds?.[worldId];
+                        if (targetWorld) {
+                            const hopNumber = pathWorlds.length + 1;
+                            suggestions.push({
+                                text: input + (input.match(/W\d*$/) ? '' : 'W') + worldId,
+                                description: `Hop ${hopNumber}: W${worldId} (${targetWorld.owner || 'neutral'})`,
+                                type: 'world',
+                                complete: false,
+                                priority: 10
+                            });
+                        }
                     });
-                });
+                }
+
+                // Show current path in description if multi-hop
+                if (pathWorlds.length > 0 && suggestions.length > 0) {
+                    const pathDescription = `Path so far: ${pathWorlds.map(w => `W${w}`).join(' → ')}`;
+                    // Add path indicator to first suggestion
+                    if (suggestions[0]) {
+                        suggestions[0].pathInfo = pathDescription;
+                    }
+                }
                 break;
 
             case 'transfer_target':
@@ -339,5 +371,15 @@ class AutoComplete {
     extractWorldId(input) {
         const match = input.match(/W(\d+)/);
         return match ? parseInt(match[1]) : null;
+    }
+
+    extractMovePath(input) {
+        // Extract all world IDs from a move command like "F5W10W23W45"
+        const worldMatches = input.matchAll(/W(\d+)/g);
+        const path = [];
+        for (const match of worldMatches) {
+            path.push(parseInt(match[1]));
+        }
+        return path;
     }
 }
