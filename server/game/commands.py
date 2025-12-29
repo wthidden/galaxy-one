@@ -4,6 +4,22 @@ All player commands go through validation and execution.
 """
 from abc import ABC, abstractmethod
 from typing import Optional, List
+from .command_validators import (
+    validate_fleet_has_ships,
+    validate_fleet_has_cargo,
+    validate_fleet_ownership,
+    validate_world_ownership,
+    validate_world_has_population,
+    validate_world_connected,
+    validate_transfer_ships_basic,
+    validate_build_basic,
+    validate_not_own_fleet,
+    validate_fleet_at_same_world,
+    validate_artifact_exists,
+    validate_character_type,
+    validate_ships_available,
+    validate_sufficient_resources
+)
 
 
 class Command(ABC):
@@ -42,23 +58,17 @@ class MoveFleetCommand(Command):
         self.path = path
 
     def validate(self, game_state) -> tuple[bool, str]:
-        fleet = game_state.get_fleet(self.fleet_id)
-
-        if not fleet:
-            return False, f"Fleet {self.fleet_id} does not exist"
-
-        if fleet.owner != self.player:
-            return False, f"You do not own fleet {self.fleet_id}"
-
-        if fleet.ships == 0:
-            return False, f"Fleet {self.fleet_id} has no ships"
+        # Validate fleet ownership and has ships
+        valid, msg, fleet = validate_fleet_has_ships(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
 
         # Validate path connectivity
         current = fleet.world.id
         for next_world_id in self.path:
-            world = game_state.get_world(current)
-            if next_world_id not in world.connections:
-                return False, f"World {current} is not connected to {next_world_id}"
+            valid, msg = validate_world_connected(game_state, current, next_world_id)
+            if not valid:
+                return valid, msg
             current = next_world_id
 
         return True, ""
@@ -86,27 +96,17 @@ class BuildCommand(Command):
         self.target_id = target_id  # Fleet ID if building on fleet
 
     def validate(self, game_state) -> tuple[bool, str]:
-        world = game_state.get_world(self.world_id)
+        # Validate world ownership and resources
+        valid, msg, world = validate_build_basic(game_state, self.player, self.world_id, self.amount)
+        if not valid:
+            return valid, msg
 
-        if not world:
-            return False, f"World {self.world_id} does not exist"
-
-        if world.owner != self.player:
-            return False, f"You do not own world {self.world_id}"
-
-        if self.amount <= 0:
-            return False, "Build amount must be positive"
-
-        max_build = min(world.industry, world.metal, world.population)
-        if self.amount > max_build:
-            return False, f"Cannot build {self.amount}, maximum is {max_build}"
-
+        # If building on a fleet, validate fleet
         if self.target_type == "F" and self.target_id:
-            fleet = game_state.get_fleet(self.target_id)
-            if not fleet:
-                return False, f"Fleet {self.target_id} does not exist"
-            if fleet.owner != self.player:
-                return False, f"You do not own fleet {self.target_id}"
+            valid, msg, fleet = validate_fleet_ownership(game_state, self.player, self.target_id)
+            if not valid:
+                return valid, msg
+
             if fleet.world != world:
                 return False, f"Fleet {self.target_id} is not at world {self.world_id}"
 
@@ -138,26 +138,24 @@ class TransferCommand(Command):
         self.target_id = target_id
 
     def validate(self, game_state) -> tuple[bool, str]:
-        fleet = game_state.get_fleet(self.fleet_id)
+        # Validate fleet ownership and sufficient ships
+        valid, msg, fleet = validate_transfer_ships_basic(
+            game_state, self.player, self.fleet_id, self.amount
+        )
+        if not valid:
+            return valid, msg
 
-        if not fleet:
-            return False, f"Fleet {self.fleet_id} does not exist"
-
-        if fleet.owner != self.player:
-            return False, f"You do not own fleet {self.fleet_id}"
-
-        if fleet.ships < self.amount:
-            return False, f"Fleet {self.fleet_id} only has {fleet.ships} ships"
-
+        # If transferring to world garrison, validate world ownership
         world = fleet.world
-        if self.target_type in ["I", "P"] and world.owner != self.player:
-            return False, "Cannot transfer to garrison of world you don't own"
+        if self.target_type in ["I", "P"]:
+            valid, msg, _ = validate_world_ownership(game_state, self.player, world.id)
+            if not valid:
+                return False, "Cannot transfer to garrison of world you don't own"
 
+        # If transferring to another fleet, validate target fleet and location
         if self.target_type == "F" and self.target_id:
-            target_fleet = game_state.get_fleet(self.target_id)
-            if not target_fleet:
-                return False, f"Target fleet {self.target_id} does not exist"
-            if target_fleet.world.id != world.id:
+            valid, msg = validate_fleet_at_same_world(game_state, self.fleet_id, self.target_id)
+            if not valid:
                 return False, "Target fleet must be at same world"
 
         return True, ""
@@ -325,24 +323,21 @@ class FireCommand(Command):
         self.sub_target = sub_target  # "P" or "I" if targeting world
 
     def validate(self, game_state) -> tuple[bool, str]:
-        fleet = game_state.get_fleet(self.fleet_id)
+        # Validate fleet has ships
+        valid, msg, fleet = validate_fleet_has_ships(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
 
-        if not fleet:
-            return False, f"Fleet {self.fleet_id} does not exist"
-
-        if fleet.owner != self.player:
-            return False, f"You do not own fleet {self.fleet_id}"
-
-        if fleet.ships == 0:
-            return False, f"Fleet {self.fleet_id} has no ships"
-
+        # If firing at a fleet, validate target
         if self.target_type == "FLEET" and self.target_id:
-            target = game_state.get_fleet(self.target_id)
-            if not target:
-                return False, f"Target fleet {self.target_id} does not exist"
-            if target.owner == self.player:
-                return False, "Cannot fire at your own fleet"
-            if target.world != fleet.world:
+            # Check not own fleet
+            valid, msg = validate_not_own_fleet(game_state, self.player, self.target_id)
+            if not valid:
+                return valid, msg
+
+            # Check at same world
+            valid, msg = validate_fleet_at_same_world(game_state, self.fleet_id, self.target_id)
+            if not valid:
                 return False, "Target fleet must be at same world"
 
         return True, ""
@@ -639,20 +634,16 @@ class LoadCommand(Command):
         self.amount = amount  # None means load max
 
     def validate(self, game_state) -> tuple[bool, str]:
-        fleet = game_state.get_fleet(self.fleet_id)
+        # Validate fleet ownership
+        valid, msg, fleet = validate_fleet_ownership(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
 
-        if not fleet:
-            return False, f"Fleet {self.fleet_id} does not exist"
-
-        if fleet.owner != self.player:
-            return False, f"You do not own fleet {self.fleet_id}"
-
+        # Validate world has population
         world = fleet.world
-        if world.owner != self.player:
-            return False, "Cannot load from world you don't own"
-
-        if world.population == 0:
-            return False, f"World {world.id} has no population to load"
+        valid, msg, _ = validate_world_has_population(game_state, self.player, world.id)
+        if not valid:
+            return valid, msg
 
         return True, ""
 
@@ -680,21 +671,18 @@ class UnloadCommand(Command):
         self.amount = amount  # None means unload all
 
     def validate(self, game_state) -> tuple[bool, str]:
-        fleet = game_state.get_fleet(self.fleet_id)
+        # Validate fleet has cargo
+        valid, msg, fleet = validate_fleet_has_cargo(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
 
-        if not fleet:
-            return False, f"Fleet {self.fleet_id} does not exist"
-
-        if fleet.owner != self.player:
-            return False, f"You do not own fleet {self.fleet_id}"
-
+        # Validate world ownership
         world = fleet.world
-        if world.owner != self.player:
+        valid, msg, _ = validate_world_ownership(game_state, self.player, world.id)
+        if not valid:
             return False, "Cannot unload to world you don't own"
 
-        if fleet.cargo == 0:
-            return False, f"Fleet {self.fleet_id} has no cargo to unload"
-
+        # Check population limit
         if world.population >= world.limit:
             return False, f"World {world.id} is at population limit"
 
