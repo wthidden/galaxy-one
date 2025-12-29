@@ -334,6 +334,60 @@ async def execute_unload_order(order: dict):
     world.population += amount
 
 
+async def execute_transfer_from_defense_order(order: dict):
+    """
+    Execute a TRANSFER_FROM_DEFENSE order (I#T#F#, P#T#F#, I#T#P, P#T#I).
+    Transfer ships from ISHIPS/PSHIPS to fleets or between defenses.
+
+    Args:
+        order: Transfer from defense order dict
+    """
+    game_state = get_game_state()
+
+    player = order["player"]
+    world_id = order["world_id"]
+    amount = order["amount"]
+    source_type = order["source_type"]  # "I" or "P"
+    target_type = order["target_type"]  # "I", "P", or "F"
+    target_id = order.get("target_id")
+
+    world = game_state.get_world(world_id)
+    if not world or world.owner != player:
+        return
+
+    # Check source has enough ships
+    if source_type == "I":
+        if world.iships < amount:
+            return
+        world.iships -= amount
+    elif source_type == "P":
+        if world.pships < amount:
+            return
+        world.pships -= amount
+    else:
+        return
+
+    # Execute transfer to target
+    if target_type == "I":
+        world.iships += amount
+    elif target_type == "P":
+        world.pships += amount
+    elif target_type == "F" and target_id:
+        target_fleet = game_state.get_fleet(target_id)
+        if not target_fleet or target_fleet.world.id != world_id:
+            # Invalid target, refund ships to source
+            if source_type == "I":
+                world.iships += amount
+            else:
+                world.pships += amount
+            return
+
+        # Transfer ships to fleet
+        target_fleet.ships += amount
+
+    logger.info(f"Transferred {amount} ships from {source_type}SHIPS@W{world_id} to {target_type}{target_id if target_id else ''}")
+
+
 async def execute_transfer_artifact_order(order: dict):
     """
     Execute a TRANSFER_ARTIFACT order.

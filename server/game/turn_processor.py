@@ -5,11 +5,12 @@ Executes all orders in priority order and runs game mechanics.
 import logging
 import time
 from .state import get_game_state
-from .mechanics.combat import execute_fire_order
+from .mechanics.combat import execute_fire_order, execute_defense_fire_order
 from .mechanics.movement import execute_move_order, set_ambush
 from .mechanics.production import (
     execute_build_order,
     execute_transfer_order,
+    execute_transfer_from_defense_order,
     execute_transfer_artifact_order,
     execute_load_order,
     execute_unload_order,
@@ -83,6 +84,10 @@ async def process_turn():
     for order in orders_by_type.get("TRANSFER", []):
         await execute_transfer_order(order)
 
+    # 1b. Transfers from defenses
+    for order in orders_by_type.get("TRANSFER_FROM_DEFENSE", []):
+        await execute_transfer_from_defense_order(order)
+
     # 2. Artifact transfers
     for order in orders_by_type.get("TRANSFER_ARTIFACT", []):
         await execute_transfer_artifact_order(order)
@@ -102,6 +107,10 @@ async def process_turn():
     # 6. Fire orders
     for order in orders_by_type.get("FIRE", []):
         await execute_fire_order(order)
+
+    # 6b. Defense fire orders
+    for order in orders_by_type.get("DEFENSE_FIRE", []):
+        await execute_defense_fire_order(order)
 
     # 7. Set ambush status
     for order in orders_by_type.get("AMBUSH", []):

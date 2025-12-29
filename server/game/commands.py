@@ -177,6 +177,63 @@ class TransferCommand(Command):
         return f"Transfer {self.amount} from F{self.fleet_id} to {target}"
 
 
+class TransferFromDefenseCommand(Command):
+    """Transfer ships FROM ISHIPS/PSHIPS to fleet or between defenses."""
+
+    def __init__(self, player, world_id: int, amount: int, source_type: str, target_type: str, target_id: Optional[int] = None):
+        super().__init__(player)
+        self.world_id = world_id
+        self.amount = amount
+        self.source_type = source_type  # "I" or "P"
+        self.target_type = target_type  # "I", "P", or "F"
+        self.target_id = target_id  # Required if target_type is "F"
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        world = game_state.get_world(self.world_id)
+
+        if not world:
+            return False, f"World {self.world_id} does not exist"
+
+        if world.owner != self.player:
+            return False, f"You do not own world {self.world_id}"
+
+        # Check source has enough ships
+        if self.source_type == "I":
+            if world.iships < self.amount:
+                return False, f"World {self.world_id} only has {world.iships} ISHIPS"
+        elif self.source_type == "P":
+            if world.pships < self.amount:
+                return False, f"World {self.world_id} only has {world.pships} PSHIPS"
+
+        # Validate target
+        if self.target_type == "F":
+            if not self.target_id:
+                return False, "Target fleet ID required"
+            target_fleet = game_state.get_fleet(self.target_id)
+            if not target_fleet:
+                return False, f"Fleet {self.target_id} does not exist"
+            if target_fleet.world.id != self.world_id:
+                return False, f"Fleet {self.target_id} not at world {self.world_id}"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "TRANSFER_FROM_DEFENSE",
+            "player": self.player,
+            "world_id": self.world_id,
+            "amount": self.amount,
+            "source_type": self.source_type,
+            "target_type": self.target_type,
+            "target_id": self.target_id
+        }
+
+    def get_description(self) -> str:
+        source = f"{self.source_type}SHIPS@W{self.world_id}"
+        target = f"F{self.target_id}" if self.target_id else f"{self.target_type}SHIPS"
+        return f"Transfer {self.amount} from {source} to {target}"
+
+
 class TransferArtifactCommand(Command):
     """Transfer artifact between fleet and world or between fleets."""
 
@@ -332,6 +389,61 @@ class AmbushCommand(Command):
 
     def get_description(self) -> str:
         return f"F{self.fleet_id} Ambush"
+
+
+class DefenseFireCommand(Command):
+    """Fire from ISHIPS or PSHIPS at a target."""
+
+    def __init__(self, player, world_id: int, defense_type: str, target_type: str, target_id: Optional[int] = None):
+        super().__init__(player)
+        self.world_id = world_id
+        self.defense_type = defense_type  # "I" or "P"
+        self.target_type = target_type  # "F" (fleet) or "C" (converts)
+        self.target_id = target_id  # Fleet ID if targeting fleet
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        world = game_state.get_world(self.world_id)
+
+        if not world:
+            return False, f"World {self.world_id} does not exist"
+
+        if world.owner != self.player:
+            return False, f"You do not own world {self.world_id}"
+
+        # Check we have defense ships
+        if self.defense_type == "I":
+            if world.iships == 0:
+                return False, f"World {self.world_id} has no ISHIPS"
+        elif self.defense_type == "P":
+            if world.pships == 0:
+                return False, f"World {self.world_id} has no PSHIPS"
+
+        # Validate target
+        if self.target_type == "F" and self.target_id:
+            target = game_state.get_fleet(self.target_id)
+            if not target:
+                return False, f"Target fleet {self.target_id} does not exist"
+            if target.world.id != self.world_id:
+                return False, f"Fleet {self.target_id} not at world {self.world_id}"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "DEFENSE_FIRE",
+            "player": self.player,
+            "world_id": self.world_id,
+            "defense_type": self.defense_type,
+            "target_type": self.target_type,
+            "target_id": self.target_id
+        }
+
+    def get_description(self) -> str:
+        defense = f"{self.defense_type}SHIPS@W{self.world_id}"
+        if self.target_type == "F":
+            return f"{defense} Fire at F{self.target_id}"
+        else:
+            return f"{defense} Fire at Converts"
 
 
 class LoadCommand(Command):

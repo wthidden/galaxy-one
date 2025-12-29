@@ -136,6 +136,57 @@ async def fire_at_world(order: dict, attacker_fleet, world):
         )
         await event_bus.publish(event)
 
+    elif sub_target == "H":
+        # Fire at ISHIPS and PSHIPS, then try to neutralize the world
+        initial_iships = world.iships
+        initial_pships = world.pships
+
+        # Fire at ISHIPS first
+        world.iships = max(0, world.iships - math.ceil(shots / 2))
+        rem_shots = shots - (initial_iships * 2)
+
+        # Fire remaining shots at PSHIPS
+        if rem_shots > 0:
+            world.pships = max(0, world.pships - math.ceil(rem_shots / 2))
+            rem_shots -= (initial_pships * 2)
+
+        # If all defenses destroyed and shots remain, try to neutralize world
+        if world.iships == 0 and world.pships == 0 and rem_shots > 0:
+            if world.owner and world.owner != player:
+                old_owner = world.owner
+                world.owner = None
+                await sender.send_event(
+                    player,
+                    f"W{world.id} neutralized! Defenses destroyed and ownership removed.",
+                    "combat"
+                )
+                if old_owner:
+                    await sender.send_event(
+                        old_owner,
+                        f"W{world.id} has been neutralized by {player.name}!",
+                        "combat"
+                    )
+
+        ships_destroyed = (initial_iships - world.iships) + (initial_pships - world.pships)
+        await sender.send_event(
+            player,
+            f"Fired on W{world.id} defenses, destroying {ships_destroyed} defense ships.",
+            "combat"
+        )
+
+        # Publish combat event
+        event = CombatEvent(
+            world_id=world.id,
+            attacker_id=player.id,
+            defender_id=world.owner.id if world.owner else None,
+            attacker_losses=0,
+            defender_losses=ships_destroyed,
+            combat_type="fleet_vs_world",
+            game_turn=game_state.game_turn,
+            timestamp=time.time()
+        )
+        await event_bus.publish(event)
+
 
 async def fire_at_fleet(order: dict, attacker_fleet, world):
     """
@@ -189,3 +240,79 @@ async def fire_at_fleet(order: dict, attacker_fleet, world):
         timestamp=time.time()
     )
     await event_bus.publish(event)
+
+
+async def execute_defense_fire_order(order: dict):
+    """
+    Execute a DEFENSE_FIRE order (I#AF#, P#AF#, I#AC, P#AC).
+    Fire from ISHIPS or PSHIPS at targets.
+
+    Args:
+        order: Defense fire order dict
+    """
+    game_state = get_game_state()
+    event_bus = get_event_bus()
+    sender = get_message_sender()
+
+    player = order["player"]
+    world_id = order["world_id"]
+    defense_type = order["defense_type"]  # "I" or "P"
+    target_type = order["target_type"]  # "F" or "C"
+    target_id = order.get("target_id")
+
+    world = game_state.get_world(world_id)
+    if not world or world.owner != player:
+        return
+
+    # Get defensive ships
+    if defense_type == "I":
+        shots = world.iships
+        if shots == 0:
+            return
+    elif defense_type == "P":
+        shots = world.pships
+        if shots == 0:
+            return
+    else:
+        return
+
+    # Execute fire based on target type
+    if target_type == "F" and target_id:
+        # Fire at enemy fleet
+        target_fleet = game_state.get_fleet(target_id)
+        if not target_fleet or target_fleet.world.id != world_id:
+            return
+
+        # Only fire at enemy fleets
+        if target_fleet.owner == player:
+            return
+
+        # Deal damage (2 ships per defense ship)
+        damage = shots * 2
+        ships_destroyed = min(damage, target_fleet.ships)
+        target_fleet.ships -= ships_destroyed
+
+        await sender.send_event(
+            player,
+            f"{defense_type}SHIPS@W{world_id} destroyed {ships_destroyed} ships from F{target_id}",
+            "combat"
+        )
+
+        # Publish combat event
+        event = CombatEvent(
+            world_id=world.id,
+            attacker_id=player.id,
+            defender_id=target_fleet.owner.id if target_fleet.owner else None,
+            attacker_losses=0,
+            defender_losses=ships_destroyed,
+            combat_type="defense_vs_fleet",
+            game_turn=game_state.game_turn,
+            timestamp=time.time()
+        )
+        await event_bus.publish(event)
+
+    elif target_type == "C":
+        # Fire at converts (Apostle mechanic)
+        # TODO: Implement convert targeting when Apostle mechanics are added
+        logger.info(f"{defense_type}SHIPS@W{world_id} firing at converts (not yet implemented)")
+        pass
