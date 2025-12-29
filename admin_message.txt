@@ -1,5 +1,16 @@
-**IMPORTANT UPDATE:** The server has been upgraded with new features! 🎉
+**StarWeb v2.0 - December 2024 Update** 🚀
 
-Enjoy the new admin message system. You can now receive real-time updates from the game administrator.
+**Major Changes:**
 
-Type HELP for more commands.
+• **Turn Timer System** - Set your preferred turn time when joining: `JOIN YourName 60 EmpireBuilder` (5-1440 minutes)
+• **Immediate World Capture** - Capture worlds the same turn you arrive (no more waiting!)
+• **Character-Specific Scoring** - All 6 character types now have proper scoring per official rules
+• **Defense Display** - Now shows I#/P# format (e.g., "I5/P3") for clarity
+• **Homeworld Improvements** - Starting worlds are 1+ hops apart, no artifacts on homeworlds
+
+**Important Rules:**
+- Defensive ships (iships/pships) guarantee world ownership even without fleets
+- Building defenses on neutral world claims it immediately
+- Turn timer is the average of all players' preferences
+
+Type `HELP` for commands. See PLAYER_MANUAL.md for full details.
