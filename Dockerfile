@@ -18,4 +18,4 @@ RUN mkdir -p /app/data
 EXPOSE 8765
 
 # Run server
-CMD ["python", "server.py"]
+CMD ["python", "-m", "server.main"]
