@@ -68,8 +68,10 @@ async def execute_build_order(order: dict):
     Args:
         order: Build order dict
     """
+    from ...message_sender import get_message_sender
     game_state = get_game_state()
     event_bus = get_event_bus()
+    sender = get_message_sender()
 
     player = order["player"]
     world_id = order["world_id"]
@@ -78,7 +80,12 @@ async def execute_build_order(order: dict):
     target_id = order.get("target_id")
 
     world = game_state.get_world(world_id)
-    if not world or world.owner != player:
+    if not world:
+        return
+
+    # Can build if: (1) you own the world, OR (2) you have a fleet there
+    can_build = world.owner == player or any(f.owner == player for f in world.fleets)
+    if not can_build:
         return
 
     # Calculate actual build amount
@@ -97,10 +104,23 @@ async def execute_build_order(order: dict):
     world.population_used_building += actual_amount
 
     # Build ships
+    claimed_world = False
     if target_type == "I":
         world.iships += actual_amount
+        # Building iships on neutral world establishes ownership
+        if not world.owner:
+            world.owner = player
+            player.worlds.append(world)
+            claimed_world = True
+            logger.info(f"World {world_id}: {player.name} claimed via building iships")
     elif target_type == "P":
         world.pships += actual_amount
+        # Building pships on neutral world establishes ownership
+        if not world.owner:
+            world.owner = player
+            player.worlds.append(world)
+            claimed_world = True
+            logger.info(f"World {world_id}: {player.name} claimed via building pships")
     elif target_type == "F" and target_id:
         fleet = game_state.get_fleet(target_id)
         if fleet and fleet.world == world and fleet.owner == player:
@@ -110,6 +130,14 @@ async def execute_build_order(order: dict):
             world.metal += actual_amount
             world.population_used_building -= actual_amount
             return
+
+    # Notify player if they claimed the world
+    if claimed_world:
+        await sender.send_event(
+            player,
+            f"**Claimed World {world_id}!** Built defenses on neutral world.",
+            "capture"
+        )
 
     # Publish build event
     event = BuildEvent(
