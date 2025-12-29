@@ -39,6 +39,16 @@ class WebSocketHandler:
             # Send welcome message
             await self.message_sender.send_welcome(player)
 
+            # Send current admin message if it exists
+            from .admin_message import get_admin_watcher
+            admin_watcher = get_admin_watcher()
+            current_message = admin_watcher.get_current_message()
+            if current_message:
+                logger.info(f"Sending initial admin message to {player.name}")
+                await self.message_sender.send_admin_message(player, current_message)
+            else:
+                logger.debug(f"No admin message to send to {player.name}")
+
             # Main message loop
             async for raw_message in websocket:
                 await self.message_router.route(player, raw_message)

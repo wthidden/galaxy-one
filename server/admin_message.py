@@ -5,15 +5,22 @@ Admin Message System - Watches admin_message.txt for changes and broadcasts to p
 import asyncio
 import os
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AdminMessageWatcher:
     def __init__(self, message_file="admin_message.txt"):
         self.message_file = Path(message_file)
         self.last_modified = 0
-        self.current_message = ""
         self.check_interval = 5  # Check every 5 seconds
         self.running = False
+        # Read initial message immediately
+        self.current_message = self.read_message()
+        if self.message_file.exists():
+            self.last_modified = os.stat(self.message_file).st_mtime
+        logger.info(f"AdminMessageWatcher initialized. Current message: {self.current_message[:50] if self.current_message else 'None'}...")
 
     def read_message(self):
         """Read the current admin message from file"""
