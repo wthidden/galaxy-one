@@ -489,7 +489,7 @@ canvas {
     font-family: monospace;
 }
 
-#send-btn, #end-turn-btn, #help-btn {
+#send-btn, #end-turn-btn, #help-btn, #manual-btn {
     padding: 10px 20px;
     color: white;
     border: none;
@@ -515,6 +515,17 @@ canvas {
 
 #help-btn:hover {
     background-color: #5a6268;
+}
+
+#manual-btn {
+    background-color: #17a2b8;
+    padding: 10px 15px;
+    font-size: 16px;
+    margin-right: 5px;
+}
+
+#manual-btn:hover {
+    background-color: #138496;
 }
 
 #log {

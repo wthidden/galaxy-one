@@ -235,6 +235,13 @@ function setupUIListeners() {
         webSocketClient.sendCommand('HELP');
     });
 
+    // Manual download button
+    const manualBtn = document.getElementById('manual-btn');
+    manualBtn?.addEventListener('click', () => {
+        // Download the player manual
+        window.open('/manual', '_blank');
+    });
+
     commandInput?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             sendBtn?.click();

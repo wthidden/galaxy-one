@@ -32,6 +32,37 @@ from .events.handlers import register_all_handlers
 from .admin_message import get_admin_watcher
 
 
+class StarWebHTTPHandler(http.server.SimpleHTTPRequestHandler):
+    """Custom HTTP handler with manual download endpoint."""
+
+    def do_GET(self):
+        """Handle GET requests with custom routes."""
+        if self.path == '/manual':
+            # Serve the player manual as a download
+            try:
+                manual_path = os.path.join(os.getcwd(), 'PLAYER_MANUAL.md')
+                with open(manual_path, 'rb') as f:
+                    content = f.read()
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/markdown; charset=utf-8')
+                self.send_header('Content-Disposition', 'attachment; filename="StarWeb_Player_Manual_v2.0.md"')
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+            except FileNotFoundError:
+                self.send_error(404, "Manual not found")
+                return
+            except Exception as e:
+                logger.error(f"Error serving manual: {e}")
+                self.send_error(500, "Internal server error")
+                return
+
+        # Default handling for other paths
+        super().do_GET()
+
+
 def run_http_server():
     """Run HTTP server for serving static files."""
     PORT = 8000
@@ -40,7 +71,7 @@ def run_http_server():
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(parent_dir)
 
-    Handler = http.server.SimpleHTTPRequestHandler
+    Handler = StarWebHTTPHandler
     socketserver.TCPServer.allow_reuse_address = True
 
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
