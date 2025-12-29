@@ -59,3 +59,11 @@ docker-compose.override.yml
 # Backup files
 *.bak
 *.backup
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage_summary.txt
+*.pyc
+__pycache__/
+
