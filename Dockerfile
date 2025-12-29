@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server/ ./server/
 COPY client/ ./client/
 COPY *.py ./
+COPY admin_message.txt ./
 
 # Create data directory for persistence
 RUN mkdir -p /app/data

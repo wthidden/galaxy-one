@@ -55,6 +55,11 @@ class MessageHandler {
             this._handleChat(data);
         });
 
+        // Admin message
+        this.ws.on('admin_message', (data) => {
+            this._handleAdminMessage(data);
+        });
+
         // Connection status
         this.ws.on('connected', () => {
             this._updateConnectionStatus('Connected', '#4caf50');
@@ -136,5 +141,24 @@ class MessageHandler {
         window.dispatchEvent(new CustomEvent('game-chat', {
             detail: data
         }));
+    }
+
+    _handleAdminMessage(data) {
+        const adminPanel = document.getElementById('admin-message-panel');
+        const adminContent = document.getElementById('admin-message-content');
+
+        if (adminPanel && adminContent) {
+            // Update content with markdown parsing
+            adminContent.innerHTML = this._parseMarkdown(data.text);
+
+            // Show panel if it was hidden
+            adminPanel.style.display = 'block';
+
+            // Add flash animation to indicate new message
+            adminPanel.classList.add('flash');
+            setTimeout(() => {
+                adminPanel.classList.remove('flash');
+            }, 1000);
+        }
     }
 }
