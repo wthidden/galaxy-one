@@ -46,7 +46,7 @@ class StarWebHTTPHandler(http.server.SimpleHTTPRequestHandler):
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/markdown; charset=utf-8')
-                self.send_header('Content-Disposition', 'attachment; filename="StarWeb_Player_Manual_v2.0.md"')
+                self.send_header('Content-Disposition', 'attachment; filename="StarWeb_Player_Manual.md"')
                 self.send_header('Content-Length', str(len(content)))
                 self.end_headers()
                 self.wfile.write(content)

@@ -1,16 +1,18 @@
-**StarWeb v2.0 - December 2024 Update** 🚀
+**StarWeb - December 2025 Update** 🚀
 
-**Major Changes:**
+**Latest Features:**
 
-• **Turn Timer System** - Set your preferred turn time when joining: `JOIN YourName 60 EmpireBuilder` (5-1440 minutes)
-• **Immediate World Capture** - Capture worlds the same turn you arrive (no more waiting!)
-• **Character-Specific Scoring** - All 6 character types now have proper scoring per official rules
-• **Defense Display** - Now shows I#/P# format (e.g., "I5/P3") for clarity
-• **Homeworld Improvements** - Starting worlds are 1+ hops apart, no artifacts on homeworlds
+• **Game Persistence** - Games auto-save and resume after server restarts (no data loss!)
+• **Player Reconnection** - Rejoin with your existing empire (no duplicate homeworlds)
+• **Manual Download** - Click 📖 button to download the full player manual
+• **Turn Timer System** - Set your preferred turn time: `JOIN YourName 60 EmpireBuilder` (5-1440 min)
+• **Immediate World Capture** - Capture worlds the same turn you arrive
+• **Character-Specific Scoring** - All 6 character types score per official rules
 
 **Important Rules:**
 - Defensive ships (iships/pships) guarantee world ownership even without fleets
 - Building defenses on neutral world claims it immediately
 - Turn timer is the average of all players' preferences
+- Disconnected? Rejoin with same name to restore your empire
 
-Type `HELP` for commands. See PLAYER_MANUAL.md for full details.
+Type `HELP` for commands. Click 📖 for full manual.

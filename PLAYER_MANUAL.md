@@ -1,6 +1,6 @@
 # StarWeb Player Manual
 
-**Revision: 2.0 - December 2024**
+**Last Updated: December 2025**
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -843,62 +843,80 @@ HELP W3           - World-specific help
 
 ## Revision History
 
-### Version 2.0 - December 2024
+### December 2025 Update
 
-**Major Changes:**
+**New Features:**
 
-1. **Character-Specific Scoring System**
+1. **Game State Persistence**
+   - Server now saves game state to disk after each turn
+   - Games automatically resume from last state on server restart
+   - Graceful shutdown with state preservation (no data loss)
+   - Backup system (.json.bak) for save file safety
+
+2. **Player Reconnection**
+   - Players can rejoin existing games without creating duplicate homeworlds
+   - Server tracks persistent player data by name
+   - Reconnecting players restore their fleets, worlds, and resources
+   - Prevents accidental multi-account abuse
+
+3. **Player Manual Download**
+   - Added 📖 button to download this manual from the game UI
+   - Players can access full documentation anytime
+   - Manual served as markdown file for offline reading
+
+4. **Character-Specific Scoring System**
    - Empire Builder: Corrected to 1 pt per 10 population (was 1 per 1), added 1 pt per mine
    - Pirate: Added 3 points per key owned
    - Artifact Collector: Implemented full artifact scoring (30 pts Ancient/Pyramid, 90 pts Ancient Pyramid, 15 pts others)
    - All character types now have proper scoring matching official StarWeb rules
 
-2. **World Capture Mechanics**
+5. **World Capture Mechanics**
    - World capture now happens **immediately** when fleet arrives (same turn)
    - Removed 1-turn delay for capturing neutral/undefended worlds
    - Defensive ships (iships/pships) still prevent capture
    - Zero population worlds cannot be owned
 
-3. **Artifact Transfer System**
+6. **Artifact Transfer System**
    - Fixed TRANSFER_ARTIFACT command to work with fleet presence
    - LOAD/UNLOAD artifacts now work when you have a fleet at the world (not just ownership)
    - Improved artifact access rules
 
-4. **Turn Timer System**
+7. **Turn Timer System**
    - Players can now specify preferred minimum turn time when joining
    - Format: `JOIN <name> [minutes] [character_type]`
    - Average of all players' preferences used as actual turn duration
    - Default: 60 minutes if not specified
    - Range: 5-1440 minutes (5 min to 24 hours)
 
-5. **Homeworld Improvements**
+8. **Homeworld Improvements**
    - Homeworlds are now guaranteed to be at least 1 hop apart
    - Artifacts are never placed on starting homeworlds (relocated to neutral worlds)
    - Homeworlds marked with 🔑 icon in world list
 
-6. **Defense Display Format**
+9. **Defense Display Format**
    - Defense display now shows `I#/P#` format (e.g., "I5/P3")
    - Real-time updates when iships/pships change
    - More informative tooltip: "Defenses (Industry Ships/Population Ships)"
 
-7. **Chat System**
-   - Added player-to-player chat functionality
-   - Admin message system with auto-collapse banner
-   - Message notifications in event log
+10. **Chat System**
+    - Added player-to-player chat functionality
+    - Admin message system with auto-collapse banner
+    - Message notifications in event log
 
-8. **UI Improvements**
-   - Multi-hop movement suggestions show only connected worlds
-   - Visual path tracking for complex move commands
-   - Reduced command suggestions dropdown size (60% smaller)
-   - Improved admin banner with auto-collapse (10 seconds)
+11. **UI Improvements**
+    - Multi-hop movement suggestions show only connected worlds
+    - Visual path tracking for complex move commands
+    - Reduced command suggestions dropdown size (60% smaller)
+    - Improved admin banner with auto-collapse (10 seconds)
 
 **Bug Fixes:**
 - Fixed world ownership mechanics with defensive ships
 - Fixed building defenses on neutral worlds (now claims world immediately)
 - Corrected command access checks for LOAD/UNLOAD/TRANSFER_ARTIFACT
 - Improved connection-aware pathfinding for multi-hop moves
+- Fixed manual download route (nginx configuration)
 
-### Version 1.0 - Initial Release
+### Initial Release
 - Core game mechanics
 - Basic UI
 - Fleet and world management
