@@ -233,7 +233,9 @@ async def execute_load_order(order: dict):
         return
 
     world = fleet.world
-    if world.owner != player:
+    # Check if player has access to world (owns it OR has fleet there)
+    has_access = world.owner == player or any(f.owner == player for f in world.fleets)
+    if not has_access:
         return
 
     # Calculate cargo capacity
@@ -276,7 +278,9 @@ async def execute_unload_order(order: dict):
         return
 
     world = fleet.world
-    if world.owner != player:
+    # Check if player has access to world (owns it OR has fleet there)
+    has_access = world.owner == player or any(f.owner == player for f in world.fleets)
+    if not has_access:
         return
 
     # Determine amount to unload
@@ -322,12 +326,17 @@ async def execute_transfer_artifact_order(order: dict):
     # Get source
     if source_type == "F":
         source = game_state.get_fleet(source_id)
+        if not source or source.owner != player:
+            return
     elif source_type == "W":
         source = game_state.get_world(source_id)
+        if not source:
+            return
+        # Check if player has access to world (owns it OR has fleet there)
+        has_access = source.owner == player or any(f.owner == player for f in source.fleets)
+        if not has_access:
+            return
     else:
-        return
-
-    if not source or source.owner != player:
         return
 
     # Find artifact in source
@@ -353,7 +362,9 @@ async def execute_transfer_artifact_order(order: dict):
         # Transfer to world at source location
         source_world = source.world if source_type == "F" else source
         target = source_world
-        if target.owner != player:
+        # Check if player has access to target world (owns it OR has fleet there)
+        has_access = target.owner == player or any(f.owner == player for f in target.fleets)
+        if not has_access:
             return
     else:
         return
