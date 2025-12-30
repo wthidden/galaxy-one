@@ -152,14 +152,38 @@ async def on_production(event: ProductionEvent):
 
 async def on_player_joined(event: PlayerJoinedEvent):
     """
-    Handle player join - broadcast to all players.
+    Handle player join - broadcast to all players and save to persistent storage.
 
     Args:
         event: PlayerJoinedEvent
     """
     from ..websocket_handler import get_websocket_handler
+    from ..game.state import get_game_state
 
     logger.info(f"Player {event.player_name} joined as {event.character_type}")
+
+    # Save player to persistent storage for reconnection
+    game_state = get_game_state()
+
+    # Find the player object
+    player = None
+    for p in game_state.players.values():
+        if p.name == event.player_name:
+            player = p
+            break
+
+    if player:
+        # Save player state for future reconnection
+        player_data = {
+            "id": player.id,
+            "name": player.name,
+            "character_type": player.character_type,
+            "score": player.score,
+            "turn_timer_minutes": player.turn_timer_minutes,
+            "known_worlds": player.known_worlds.copy()
+        }
+        game_state._persistent_players[player.name] = player_data
+        logger.info(f"Saved player {player.name} to persistent storage")
 
     ws_handler = get_websocket_handler()
 

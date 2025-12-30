@@ -55,7 +55,60 @@ function initializeApp() {
     // Setup canvas
     setupCanvas();
 
+    // Attempt auto-reconnect if saved credentials exist
+    attemptAutoReconnect();
+
     console.log('StarWeb client initialized');
+}
+
+function attemptAutoReconnect() {
+    // Check for saved player credentials
+    const savedCreds = localStorage.getItem('starweb_player_credentials');
+    if (!savedCreds) return;
+
+    try {
+        const creds = JSON.parse(savedCreds);
+
+        // Check if credentials are not too old (expire after 7 days)
+        const age = Date.now() - (creds.timestamp || 0);
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+        if (age > SEVEN_DAYS) {
+            console.log('Saved credentials expired, clearing...');
+            localStorage.removeItem('starweb_player_credentials');
+            return;
+        }
+
+        // Pre-fill login form
+        const playerNameInput = document.getElementById('player-name-input');
+        const characterTypeSelect = document.getElementById('character-type-select');
+
+        if (playerNameInput) {
+            playerNameInput.value = creds.name;
+        }
+        if (characterTypeSelect && creds.character_type) {
+            characterTypeSelect.value = creds.character_type;
+            // Trigger synopsis update
+            characterTypeSelect.dispatchEvent(new Event('change'));
+        }
+
+        // Wait for WebSocket connection, then auto-join
+        const reconnectInterval = setInterval(() => {
+            if (webSocketClient.isConnected()) {
+                clearInterval(reconnectInterval);
+                console.log(`Auto-reconnecting as ${creds.name}...`);
+
+                const scoreVote = document.getElementById('score-vote-input')?.value || 8000;
+                webSocketClient.sendCommand(`JOIN ${creds.name} ${scoreVote} ${creds.character_type}`);
+            }
+        }, 100);
+
+        // Stop trying after 5 seconds
+        setTimeout(() => clearInterval(reconnectInterval), 5000);
+
+    } catch (e) {
+        console.error('Error parsing saved credentials:', e);
+        localStorage.removeItem('starweb_player_credentials');
+    }
 }
 
 function initializeUIPanels() {
@@ -248,9 +301,19 @@ function setupUIListeners() {
     // Download option buttons
     const downloadOptionBtns = document.querySelectorAll('.download-option-btn');
     downloadOptionBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
             const url = btn.getAttribute('data-url');
-            window.open(url, '_blank');
+
+            // Create invisible download link and click it
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = ''; // Trigger download
+            downloadLink.style.display = 'none';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
             downloadModal.style.display = 'none';
         });
     });
@@ -402,6 +465,18 @@ function setupUIListeners() {
     // Initialize audio button state
     updateAudioButton();
 
+    // Logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn?.addEventListener('click', () => {
+        if (confirm('Are you sure you want to logout? You can rejoin with the same name later.')) {
+            // Clear saved credentials
+            localStorage.removeItem('starweb_player_credentials');
+
+            // Reload page to reset everything
+            window.location.reload();
+        }
+    });
+
     // Command hints are now handled by CommandInput internally
     // (input event listeners are set up in CommandInput constructor)
 
@@ -434,6 +509,13 @@ function setupStateListeners() {
             const gameContainer = document.getElementById('game-container');
 
             if (loginOverlay && loginOverlay.style.display !== 'none') {
+                // Save player credentials to localStorage for auto-reconnect
+                localStorage.setItem('starweb_player_credentials', JSON.stringify({
+                    name: state.player_name,
+                    character_type: state.character_type || 'Empire Builder',
+                    timestamp: Date.now()
+                }));
+
                 loginOverlay.style.display = 'none';
                 gameContainer.style.display = 'flex';
                 resizeCanvas();
