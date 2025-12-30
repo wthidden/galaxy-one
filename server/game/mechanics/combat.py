@@ -217,18 +217,7 @@ async def fire_at_fleet(order: dict, attacker_fleet, world):
     attacker_fleet.ships = max(0, attacker_fleet.ships - dmg_attacker)
     defender_fleet.ships = max(0, defender_fleet.ships - dmg_defender)
 
-    # Notify both players
-    msg = (
-        f"Combat at W{world.id}! F{attacker_fleet.id} vs F{defender_fleet.id}. "
-        f"Losses: Attacker {dmg_attacker}, Defender {dmg_defender}."
-    )
-
-    await sender.send_event(player, msg, "combat")
-
-    if defender_fleet.owner:
-        await sender.send_event(defender_fleet.owner, msg, "combat")
-
-    # Publish combat event
+    # Publish combat event (handler will notify players)
     event = CombatEvent(
         world_id=world.id,
         attacker_id=player.id,

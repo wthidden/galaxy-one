@@ -62,14 +62,7 @@ async def execute_move_order(order: dict):
 
     fleet.moved = True
 
-    # Send event
-    await sender.send_event(
-        player,
-        f"Fleet {fleet_id} moved to World {path[-1]}.",
-        "info"
-    )
-
-    # Publish movement event
+    # Publish movement event (handler will send user message)
     event = FleetMovedEvent(
         fleet_id=fleet_id,
         owner_id=player.id,

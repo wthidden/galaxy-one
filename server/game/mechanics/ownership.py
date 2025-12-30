@@ -100,22 +100,11 @@ async def check_world_ownership(world) -> bool:
 
             if world.owner:
                 # Taking from another player (who had no defense)
-                await sender.send_event(
-                    world.owner,
-                    f"Lost World {world.id} - captured by {sole_player.name}.",
-                    "combat"
-                )
                 world.owner.worlds.remove(world)
 
             world.owner = sole_player
             sole_player.worlds.append(world)
             changed = True
-
-            await sender.send_event(
-                sole_player,
-                f"**Captured World {world.id}!** Now under your control.",
-                "capture"
-            )
 
     # Publish ownership change event
     if changed:
