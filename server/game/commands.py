@@ -294,14 +294,14 @@ class TransferArtifactCommand(Command):
 
 
 class FireCommand(Command):
-    """Fire at fleet or world."""
+    """Fire at fleet or world - supports all fire target types."""
 
     def __init__(self, player, fleet_id: int, target_type: str, target_id: Optional[int] = None, sub_target: Optional[str] = None):
         super().__init__(player)
         self.fleet_id = fleet_id
-        self.target_type = target_type  # "WORLD" or "FLEET"
+        self.target_type = target_type  # "FLEET", "ISHIPS", "PSHIPS", "HOME", "INDUSTRY", "POPULATION", "CONVERTS"
         self.target_id = target_id  # Fleet ID if targeting fleet
-        self.sub_target = sub_target  # "P" or "I" if targeting world
+        self.sub_target = sub_target  # Additional target specification
 
     def validate(self, game_state) -> tuple[bool, str]:
         # Validate fleet has ships
@@ -321,6 +321,11 @@ class FireCommand(Command):
             if not valid:
                 return False, "Target fleet must be at same world"
 
+        # Validate target type
+        valid_targets = ["FLEET", "ISHIPS", "PSHIPS", "HOME", "INDUSTRY", "POPULATION", "CONVERTS", "WORLD"]
+        if self.target_type not in valid_targets:
+            return False, f"Invalid target type: {self.target_type}"
+
         return True, ""
 
     def to_order(self) -> dict:
@@ -336,8 +341,16 @@ class FireCommand(Command):
     def get_description(self) -> str:
         if self.target_type == "FLEET":
             return f"F{self.fleet_id} Fire at F{self.target_id}"
+        elif self.target_type == "ISHIPS":
+            return f"F{self.fleet_id} Fire at ISHIPS (then industry)"
+        elif self.target_type == "PSHIPS":
+            return f"F{self.fleet_id} Fire at PSHIPS (then population)"
+        elif self.target_type == "HOME":
+            return f"F{self.fleet_id} Fire at home fleets"
+        elif self.target_type == "CONVERTS":
+            return f"F{self.fleet_id} Fire at converts"
         else:
-            return f"F{self.fleet_id} Fire at World {self.sub_target}"
+            return f"F{self.fleet_id} Fire at {self.target_type}"
 
 
 class AmbushCommand(Command):
@@ -1330,8 +1343,178 @@ class DeclareJihadCommand(Command):
         return f"Declare Jihad against '{self.target_player_name}'"
 
 
+class ConditionalFireCommand(Command):
+    """Conditional fire - fires only if attacked (FnnnCFmmm, etc.)."""
+
+    def __init__(self, player, fleet_id: int, target_type: str, target_id: Optional[int] = None):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+        self.target_type = target_type  # "FLEET", "ISHIPS", "PSHIPS", etc.
+        self.target_id = target_id  # Fleet ID if targeting fleet
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate fleet has ships
+        valid, msg, fleet = validate_fleet_has_ships(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
+
+        # If firing at a fleet, validate target
+        if self.target_type == "FLEET" and self.target_id:
+            # Check not own fleet
+            valid, msg = validate_not_own_fleet(game_state, self.player, self.target_id)
+            if not valid:
+                return valid, msg
+
+            # Check at same world
+            valid, msg = validate_fleet_at_same_world(game_state, self.fleet_id, self.target_id)
+            if not valid:
+                return False, "Target fleet must be at same world"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "CONDITIONAL_FIRE",
+            "player": self.player,
+            "fleet_id": self.fleet_id,
+            "target_type": self.target_type,
+            "target_id": self.target_id
+        }
+
+    def get_description(self) -> str:
+        if self.target_type == "FLEET":
+            return f"F{self.fleet_id} Conditional Fire at F{self.target_id}"
+        else:
+            return f"F{self.fleet_id} Conditional Fire at {self.target_type}"
+
+
+class NoAmbushCommand(Command):
+    """Set no ambush (Z or Z#) - don't ambush anyone or at specific world."""
+
+    def __init__(self, player, world_id: Optional[int] = None):
+        super().__init__(player)
+        self.world_id = world_id  # None means no ambush anywhere
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # If world specified, validate it exists
+        if self.world_id is not None:
+            world = game_state.get_world(self.world_id)
+            if not world:
+                return False, f"World {self.world_id} does not exist"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "NO_AMBUSH",
+            "player": self.player,
+            "world_id": self.world_id
+        }
+
+    def get_description(self) -> str:
+        if self.world_id:
+            return f"Don't ambush at W{self.world_id}"
+        else:
+            return "Don't ambush anyone, anywhere this turn"
+
+
+class AtPeaceCommand(Command):
+    """Put fleet at peace (FnnnQ) - fleet won't participate in combat."""
+
+    def __init__(self, player, fleet_id: int):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate fleet ownership
+        valid, msg, _ = validate_fleet_ownership(game_state, self.player, self.fleet_id)
+        return valid, msg
+
+    def to_order(self) -> dict:
+        return {
+            "type": "AT_PEACE",
+            "player": self.player,
+            "fleet_id": self.fleet_id
+        }
+
+    def get_description(self) -> str:
+        return f"F{self.fleet_id} at peace (won't participate in combat)"
+
+
+class NotAtPeaceCommand(Command):
+    """Put fleet not at peace (FnnnX) - fleet will participate in combat."""
+
+    def __init__(self, player, fleet_id: int):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Validate fleet ownership
+        valid, msg, _ = validate_fleet_ownership(game_state, self.player, self.fleet_id)
+        return valid, msg
+
+    def to_order(self) -> dict:
+        return {
+            "type": "NOT_AT_PEACE",
+            "player": self.player,
+            "fleet_id": self.fleet_id
+        }
+
+    def get_description(self) -> str:
+        return f"F{self.fleet_id} not at peace (will participate in combat)"
+
+
+class MigrateConvertsCommand(Command):
+    """Migrate converts to another world (C#M#W#) - Apostle only."""
+
+    def __init__(self, player, source_world_id: int, amount: int, target_world_id: int):
+        super().__init__(player)
+        self.source_world_id = source_world_id
+        self.amount = amount
+        self.target_world_id = target_world_id
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Only Apostle can migrate converts
+        valid, msg = validate_character_type(self.player, "Apostle")
+        if not valid:
+            return valid, msg
+
+        # Validate source world ownership
+        valid, msg, source_world = validate_world_ownership(game_state, self.player, self.source_world_id)
+        if not valid:
+            return valid, msg
+
+        if self.amount <= 0:
+            return False, "Migration amount must be positive"
+
+        # Check source has enough converts
+        # Note: converts would be tracked separately from population in a full implementation
+        # For now, we'll validate against population as a placeholder
+        if source_world.population < self.amount:
+            return False, f"World {self.source_world_id} only has {source_world.population} population"
+
+        # Validate target world exists and is connected
+        valid, msg = validate_world_connected(game_state, self.source_world_id, self.target_world_id)
+        if not valid:
+            return valid, msg
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "MIGRATE_CONVERTS",
+            "player": self.player,
+            "source_world_id": self.source_world_id,
+            "amount": self.amount,
+            "target_world_id": self.target_world_id
+        }
+
+    def get_description(self) -> str:
+        return f"Migrate {self.amount} converts from W{self.source_world_id} to W{self.target_world_id}"
+
+
 # Exclusive order types that cannot coexist for same fleet
-EXCLUSIVE_ORDER_TYPES = {"MOVE", "FIRE", "AMBUSH"}
+EXCLUSIVE_ORDER_TYPES = {"MOVE", "FIRE", "AMBUSH", "CONDITIONAL_FIRE"}
 
 
 def has_exclusive_order(player, fleet_id: int) -> bool:

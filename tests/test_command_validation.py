@@ -14,7 +14,9 @@ from server.game.commands import (
     BuildIndustryCommand, IncreasePopulationLimitCommand, BuildRobotsCommand,
     GiftFleetCommand, GiftWorldCommand, BuildPBBCommand, DropPBBCommand,
     RobotAttackCommand, DeclareAllyCommand, DeclareNonAllyCommand,
-    DeclareLoaderCommand, DeclareNonLoaderCommand, DeclareJihadCommand
+    DeclareLoaderCommand, DeclareNonLoaderCommand, DeclareJihadCommand,
+    ConditionalFireCommand, NoAmbushCommand, AtPeaceCommand, NotAtPeaceCommand,
+    MigrateConvertsCommand
 )
 from tests.fixtures import (
     create_basic_game_state, create_combat_game_state,
@@ -591,6 +593,157 @@ class TestCommandValidation(unittest.TestCase):
         """Valid Jihad declaration should pass"""
         self.player1.character_type = "Apostle"
         cmd = DeclareJihadCommand(self.player1, "Player2")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # FireCommand enhanced target types tests
+    def test_fire_iships_target(self):
+        """Can fire at ISHIPS target"""
+        self.fleets[0].ships = 10
+        cmd = FireCommand(self.player1, 1, "ISHIPS")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    def test_fire_pships_target(self):
+        """Can fire at PSHIPS target"""
+        self.fleets[0].ships = 10
+        cmd = FireCommand(self.player1, 1, "PSHIPS")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    def test_fire_home_target(self):
+        """Can fire at HOME fleets"""
+        self.fleets[0].ships = 10
+        cmd = FireCommand(self.player1, 1, "HOME")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    def test_fire_converts_target(self):
+        """Can fire at CONVERTS"""
+        self.fleets[0].ships = 10
+        cmd = FireCommand(self.player1, 1, "CONVERTS")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    def test_fire_invalid_target_type(self):
+        """Cannot fire at invalid target type"""
+        self.fleets[0].ships = 10
+        cmd = FireCommand(self.player1, 1, "INVALID")
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("Invalid target type", msg)
+
+    # ConditionalFireCommand tests
+    def test_conditional_fire_not_owned(self):
+        """Cannot conditional fire with fleet you don't own"""
+        cmd = ConditionalFireCommand(self.player1, 3, "FLEET", 1)  # Fleet 3 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_conditional_fire_own_fleet(self):
+        """Cannot conditional fire at own fleet"""
+        cmd = ConditionalFireCommand(self.player1, 1, "FLEET", 2)  # Both owned by player1
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("own fleet", msg)
+
+    def test_conditional_fire_valid(self):
+        """Valid conditional fire should pass"""
+        # Move fleet 3 to same world as fleet 1
+        self.fleets[2].world = self.worlds[0]
+        cmd = ConditionalFireCommand(self.player1, 1, "FLEET", 3)  # Fleet 3 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # NoAmbushCommand tests
+    def test_no_ambush_everywhere(self):
+        """No ambush everywhere should pass"""
+        cmd = NoAmbushCommand(self.player1, None)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    def test_no_ambush_specific_world_nonexistent(self):
+        """Cannot set no ambush at nonexistent world"""
+        cmd = NoAmbushCommand(self.player1, 999)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("does not exist", msg)
+
+    def test_no_ambush_specific_world_valid(self):
+        """No ambush at specific world should pass"""
+        cmd = NoAmbushCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # AtPeaceCommand tests
+    def test_at_peace_not_owned(self):
+        """Cannot put fleet at peace if you don't own it"""
+        cmd = AtPeaceCommand(self.player1, 3)  # Fleet 3 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_at_peace_valid(self):
+        """Valid at peace command should pass"""
+        cmd = AtPeaceCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # NotAtPeaceCommand tests
+    def test_not_at_peace_not_owned(self):
+        """Cannot put fleet not at peace if you don't own it"""
+        cmd = NotAtPeaceCommand(self.player1, 3)  # Fleet 3 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_not_at_peace_valid(self):
+        """Valid not at peace command should pass"""
+        cmd = NotAtPeaceCommand(self.player1, 1)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertTrue(valid)
+
+    # MigrateConvertsCommand tests
+    def test_migrate_converts_wrong_character(self):
+        """Only Apostle can migrate converts"""
+        self.player1.character_type = "Empire Builder"
+        cmd = MigrateConvertsCommand(self.player1, 1, 5, 2)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("Apostle", msg)
+
+    def test_migrate_converts_not_owned(self):
+        """Cannot migrate converts from world you don't own"""
+        self.player1.character_type = "Apostle"
+        cmd = MigrateConvertsCommand(self.player1, 2, 5, 1)  # World 2 belongs to player2
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("do not own", msg)
+
+    def test_migrate_converts_insufficient_population(self):
+        """Cannot migrate more than available population"""
+        self.player1.character_type = "Apostle"
+        self.worlds[0].population = 3
+        cmd = MigrateConvertsCommand(self.player1, 1, 10, 2)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("only has", msg)
+
+    def test_migrate_converts_not_connected(self):
+        """Cannot migrate to unconnected world"""
+        self.player1.character_type = "Apostle"
+        self.worlds[0].connections = []  # Remove connections
+        cmd = MigrateConvertsCommand(self.player1, 1, 5, 2)
+        valid, msg = cmd.validate(self.game_state)
+        self.assertFalse(valid)
+        self.assertIn("not connected", msg)
+
+    def test_migrate_converts_valid(self):
+        """Valid convert migration should pass"""
+        self.player1.character_type = "Apostle"
+        self.worlds[0].population = 20
+        cmd = MigrateConvertsCommand(self.player1, 1, 5, 2)
         valid, msg = cmd.validate(self.game_state)
         self.assertTrue(valid)
 
