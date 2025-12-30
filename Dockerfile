@@ -23,7 +23,8 @@ COPY CHARACTER_GUIDE.md ./
 # Create data directory for persistence
 RUN mkdir -p /app/data
 
-# Expose WebSocket port
+# Expose ports
+EXPOSE 8000
 EXPOSE 8765
 
 # Run server

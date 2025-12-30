@@ -1,0 +1,63 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation and development files (not needed in container)
+*.md
+!PLAYER_MANUAL.md
+!COMMANDS.md
+!CHARACTER_GUIDE.md
+!client/audio/README.md
+
+# Test files
+tests/
+*.test.js
+*.spec.js
+
+# Build artifacts
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+htmlcov/
+
+# Node modules (if any)
+node_modules/
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Deployment scripts
+deploy.sh
+VPS_SETUP_GUIDE.md
+
+# Game data directory (created at runtime)
+data/
+!data/.gitkeep
+
+# Logs
+*.log
+
+# OS generated files
+Thumbs.db
