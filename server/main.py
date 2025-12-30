@@ -33,29 +33,36 @@ from .admin_message import get_admin_watcher
 
 
 class StarWebHTTPHandler(http.server.SimpleHTTPRequestHandler):
-    """Custom HTTP handler with manual download endpoint."""
+    """Custom HTTP handler with document download endpoints."""
 
     def do_GET(self):
         """Handle GET requests with custom routes."""
-        if self.path == '/manual':
-            # Serve the player manual as a download
+        # Document download routes
+        documents = {
+            '/manual': ('PLAYER_MANUAL.md', 'StarWeb_Player_Manual.md'),
+            '/commands': ('COMMANDS.md', 'StarWeb_Commands.md'),
+            '/characters': ('CHARACTER_GUIDE.md', 'StarWeb_Character_Guide.md')
+        }
+
+        if self.path in documents:
+            source_file, download_name = documents[self.path]
             try:
-                manual_path = os.path.join(os.getcwd(), 'PLAYER_MANUAL.md')
-                with open(manual_path, 'rb') as f:
+                file_path = os.path.join(os.getcwd(), source_file)
+                with open(file_path, 'rb') as f:
                     content = f.read()
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/markdown; charset=utf-8')
-                self.send_header('Content-Disposition', 'attachment; filename="StarWeb_Player_Manual.md"')
+                self.send_header('Content-Disposition', f'attachment; filename="{download_name}"')
                 self.send_header('Content-Length', str(len(content)))
                 self.end_headers()
                 self.wfile.write(content)
                 return
             except FileNotFoundError:
-                self.send_error(404, "Manual not found")
+                self.send_error(404, f"Document not found: {source_file}")
                 return
             except Exception as e:
-                logger.error(f"Error serving manual: {e}")
+                logger.error(f"Error serving {source_file}: {e}")
                 self.send_error(500, "Internal server error")
                 return
 

@@ -90,6 +90,40 @@
         <div id="log"></div>
     </div>
 
+    <!-- Download Modal -->
+    <div id="download-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Download Documentation 📖</h2>
+            <p>Choose which document you'd like to download:</p>
+            <div class="download-options">
+                <button class="download-option-btn" data-url="/manual">
+                    <div class="download-option-icon">📘</div>
+                    <div class="download-option-text">
+                        <strong>Player Manual</strong>
+                        <small>Complete game rules and mechanics</small>
+                    </div>
+                </button>
+                <button class="download-option-btn" data-url="/commands">
+                    <div class="download-option-icon">⌨️</div>
+                    <div class="download-option-text">
+                        <strong>Command Reference</strong>
+                        <small>All commands with examples and strategies</small>
+                    </div>
+                </button>
+                <button class="download-option-btn" data-url="/characters">
+                    <div class="download-option-icon">🎭</div>
+                    <div class="download-option-text">
+                        <strong>Character Guide</strong>
+                        <small>Character backgrounds and gameplay strategies</small>
+                    </div>
+                </button>
+            </div>
+            <div class="modal-buttons">
+                <button id="download-cancel-btn" class="secondary-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bug Report Modal -->
     <div id="bug-report-modal" class="modal" style="display: none;">
         <div class="modal-content">

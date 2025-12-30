@@ -1347,3 +1347,58 @@ canvas {
 .secondary-btn:hover {
     background-color: #5a6268;
 }
+
+/* Download Modal Specific Styles */
+#download-modal .modal-content h2 {
+    color: #4da6ff;
+}
+
+.download-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.download-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: #1a1a1a;
+    border: 2px solid #444;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.download-option-btn:hover {
+    background-color: #2a2a2a;
+    border-color: #4da6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(77, 166, 255, 0.2);
+}
+
+.download-option-icon {
+    font-size: 32px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.download-option-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.download-option-text strong {
+    color: #eee;
+    font-size: 16px;
+}
+
+.download-option-text small {
+    color: #aaa;
+    font-size: 13px;
+}

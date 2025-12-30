@@ -235,11 +235,35 @@ function setupUIListeners() {
         webSocketClient.sendCommand('HELP');
     });
 
-    // Manual download button
+    // Manual download button - shows modal with document choices
     const manualBtn = document.getElementById('manual-btn');
+    const downloadModal = document.getElementById('download-modal');
+    const downloadCancelBtn = document.getElementById('download-cancel-btn');
+
     manualBtn?.addEventListener('click', () => {
-        // Download the player manual
-        window.open('/manual', '_blank');
+        // Show download modal
+        downloadModal.style.display = 'flex';
+    });
+
+    // Download option buttons
+    const downloadOptionBtns = document.querySelectorAll('.download-option-btn');
+    downloadOptionBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const url = btn.getAttribute('data-url');
+            window.open(url, '_blank');
+            downloadModal.style.display = 'none';
+        });
+    });
+
+    downloadCancelBtn?.addEventListener('click', () => {
+        downloadModal.style.display = 'none';
+    });
+
+    // Close download modal when clicking outside
+    downloadModal?.addEventListener('click', (e) => {
+        if (e.target === downloadModal) {
+            downloadModal.style.display = 'none';
+        }
     });
 
     // Bug report button
