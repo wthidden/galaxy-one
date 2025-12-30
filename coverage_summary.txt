@@ -1,0 +1,18 @@
+Name                                     Stmts   Miss  Cover
+------------------------------------------------------------
+server/game/command_handlers.py            196    196     0%
+server/game/help_content.py                 49     49     0%
+server/game/mechanics/ownership.py          78     78     0%
+server/game/persistence.py                 105    105     0%
+server/game/turn_processor.py              101    101     0%
+server/game/mechanics/production.py        522    411    21%
+server/game/state.py                       132     93    30%
+server/game/mechanics/combat.py            131     84    36%
+server/game/commands.py                    561    257    54%
+server/game/mechanics/movement.py          114     51    55%
+server/game/entities.py                     73     23    68%
+server/game/command_parser_registry.py     169      5    97%
+server/game/__init__.py                      0      0   100%
+server/game/mechanics/__init__.py            0      0   100%
+------------------------------------------------------------
+TOTAL                                     2231   1453    35%
