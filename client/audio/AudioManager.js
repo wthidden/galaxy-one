@@ -71,10 +71,12 @@ class AudioManager {
     /**
      * Resume audio context if suspended (browser autoplay policy)
      */
-    async resumeContext() {
-        if (!this.audioContext) return;
-        if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
+    resumeContext() {
+        if (!this.audioContext) {
+            this.initAudioContext();
+        }
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume().catch(e => console.warn('Audio context resume failed:', e));
         }
     }
 
@@ -82,9 +84,11 @@ class AudioManager {
      * Play a synthesized instrument note with ADSR envelope
      */
     playNote(frequency, duration, instrument = 'sine', options = {}) {
-        if (!this.enabled || !this.audioContext) return;
+        if (!this.enabled) return;
 
+        // Ensure audio context is ready
         this.resumeContext();
+        if (!this.audioContext) return;
 
         const now = this.audioContext.currentTime;
         const attack = options.attack || 0.01;
@@ -204,6 +208,15 @@ class AudioManager {
             return this.audioBuffers.get(name);
         }
 
+        // Ensure audio context exists
+        if (!this.audioContext) {
+            this.initAudioContext();
+        }
+        if (!this.audioContext) {
+            console.error('Cannot load audio: AudioContext not available');
+            return null;
+        }
+
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
@@ -221,15 +234,17 @@ class AudioManager {
      * Play a loaded audio file
      */
     playAudioFile(name, options = {}) {
-        if (!this.enabled || !this.audioContext) return;
+        if (!this.enabled) return;
+
+        // Ensure audio context is ready
+        this.resumeContext();
+        if (!this.audioContext) return;
 
         const buffer = this.audioBuffers.get(name);
         if (!buffer) {
             console.warn(`Audio file ${name} not loaded`);
             return;
         }
-
-        this.resumeContext();
 
         const source = this.audioContext.createBufferSource();
         source.buffer = buffer;
@@ -358,6 +373,12 @@ class AudioManager {
      * Fleet movement - smooth swoosh with pitch bend
      */
     playFleetMove() {
+        if (!this.enabled) return;
+
+        // Ensure audio context is ready
+        this.resumeContext();
+        if (!this.audioContext) return;
+
         const osc = this.audioContext.createOscillator();
         const gain = this.audioContext.createGain();
         const filter = this.audioContext.createBiquadFilter();
