@@ -10,9 +10,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server/ ./server/
 COPY client/ ./client/
 COPY *.py ./
+COPY index.html ./
+COPY style.css ./
+COPY favicon.svg ./
+COPY favicon.ico ./
 COPY admin_message.txt ./
 COPY game_config.yaml ./
 COPY PLAYER_MANUAL.md ./
+COPY COMMANDS.md ./
+COPY CHARACTER_GUIDE.md ./
 
 # Create data directory for persistence
 RUN mkdir -p /app/data
