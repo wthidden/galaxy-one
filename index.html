@@ -16,13 +16,18 @@
             <div class="login-inputs">
                 <input type="text" id="player-name-input" placeholder="Player Name" autofocus>
                 <select id="character-type-select">
-                    <option value="Empire Builder">Empire Builder</option>
-                    <option value="Merchant">Merchant</option>
-                    <option value="Pirate">Pirate</option>
-                    <option value="Artifact Collector">Artifact Collector</option>
-                    <option value="Berserker">Berserker</option>
-                    <option value="Apostle">Apostle</option>
+                    <option value="Empire Builder">🏭 Empire Builder</option>
+                    <option value="Merchant">💰 Merchant</option>
+                    <option value="Pirate">☠️ Pirate</option>
+                    <option value="Artifact Collector">🔮 Artifact Collector</option>
+                    <option value="Berserker">⚔️ Berserker</option>
+                    <option value="Apostle">✨ Apostle</option>
                 </select>
+                <div id="character-synopsis">
+                    <div class="character-quote"></div>
+                    <div class="character-description"></div>
+                    <div class="character-abilities"></div>
+                </div>
                 <input type="number" id="score-vote-input" placeholder="Suggest End Score (e.g., 8000)" value="8000">
             </div>
             <button id="join-btn">Join Game</button>
@@ -33,7 +38,10 @@
         <div id="header">
             <h1>StarWeb</h1>
             <div id="timer-display">Turn 0 | 0:00 | 0/0 ready</div>
-            <div id="connection-status">Connecting...</div>
+            <div id="header-controls">
+                <button id="audio-toggle-btn" class="header-btn" title="Toggle sound effects">🔊</button>
+                <div id="connection-status">Connecting...</div>
+            </div>
         </div>
         <div id="admin-message-panel" style="display: none;">
             <div id="admin-message-content"></div>
@@ -138,6 +146,12 @@
     </div>
 
     <!-- Modular JavaScript Architecture -->
+    <!-- Data -->
+    <script src="client/data/CharacterData.js"></script>
+
+    <!-- Audio System -->
+    <script src="client/audio/AudioManager.js"></script>
+
     <!-- State Management -->
     <script src="client/state/GameState.js"></script>
 

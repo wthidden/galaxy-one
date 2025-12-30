@@ -31,7 +31,8 @@ body {
     text-align: center;
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     border: 1px solid #444;
-    width: 400px;
+    width: 600px;
+    max-width: 90%;
 }
 
 #login-box h1 {
@@ -54,6 +55,61 @@ body {
     border: 1px solid #555;
     background-color: #333;
     color: #fff;
+}
+
+/* Character Synopsis */
+#character-synopsis {
+    background-color: #1a1a1a;
+    border: 2px solid #4da6ff;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: left;
+    margin: 10px 0;
+}
+
+.character-quote {
+    font-style: italic;
+    color: #4da6ff;
+    font-size: 15px;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.character-description {
+    color: #eee;
+    font-size: 14px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.character-abilities {
+    color: #ccc;
+    font-size: 13px;
+}
+
+.character-abilities strong {
+    color: #4da6ff;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.character-abilities ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.character-abilities li {
+    margin-bottom: 5px;
+    color: #eee;
+}
+
+.character-abilities em {
+    display: block;
+    margin-top: 12px;
+    color: #aaa;
+    font-size: 12px;
+    border-top: 1px solid #333;
+    padding-top: 10px;
 }
 
 #join-btn {
@@ -95,6 +151,32 @@ h1 {
     margin: 0;
     font-size: 24px;
     color: #4da6ff;
+}
+
+#header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-btn {
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.header-btn:hover {
+    background-color: #444;
+    border-color: #4da6ff;
+}
+
+#audio-toggle-btn.disabled {
+    opacity: 0.4;
+    filter: grayscale(100%);
 }
 
 #connection-status {

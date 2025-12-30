@@ -322,6 +322,30 @@ function setupUIListeners() {
     const characterTypeSelect = document.getElementById('character-type-select');
     const scoreVoteInput = document.getElementById('score-vote-input');
 
+    // Character synopsis display
+    function updateCharacterSynopsis() {
+        const charType = characterTypeSelect.value;
+        const data = window.CharacterData[charType];
+
+        if (data) {
+            document.querySelector('.character-quote').textContent = data.quote;
+            document.querySelector('.character-description').textContent = data.description;
+
+            const abilitiesHTML = '<strong>Special Abilities:</strong><ul>' +
+                data.abilities.map(ability => `<li>${ability}</li>`).join('') +
+                `</ul><em>${data.playstyle}</em>`;
+            document.querySelector('.character-abilities').innerHTML = abilitiesHTML;
+        }
+    }
+
+    // Update synopsis when character selection changes
+    characterTypeSelect?.addEventListener('change', updateCharacterSynopsis);
+
+    // Show initial synopsis for default character
+    if (characterTypeSelect) {
+        updateCharacterSynopsis();
+    }
+
     joinBtn?.addEventListener('click', () => {
         const name = playerNameInput.value.trim();
         const charType = characterTypeSelect.value;
@@ -353,6 +377,31 @@ function setupUIListeners() {
         endTurnBtn.onclick = () => webSocketClient.sendCommand('TURN');
     }
 
+    // Audio toggle button
+    const audioToggleBtn = document.getElementById('audio-toggle-btn');
+    function updateAudioButton() {
+        if (audioToggleBtn) {
+            const enabled = window.audioManager.isEnabled();
+            audioToggleBtn.textContent = enabled ? '🔊' : '🔇';
+            audioToggleBtn.classList.toggle('disabled', !enabled);
+            audioToggleBtn.title = enabled ? 'Disable sound effects' : 'Enable sound effects';
+        }
+    }
+
+    audioToggleBtn?.addEventListener('click', () => {
+        const newState = !window.audioManager.isEnabled();
+        window.audioManager.setEnabled(newState);
+        updateAudioButton();
+
+        // Play test sound when enabling
+        if (newState) {
+            window.audioManager.playCommandConfirm();
+        }
+    });
+
+    // Initialize audio button state
+    updateAudioButton();
+
     // Command hints are now handled by CommandInput internally
     // (input event listeners are set up in CommandInput constructor)
 
@@ -364,9 +413,20 @@ function setupUIListeners() {
 }
 
 function setupStateListeners() {
+    // Track previous turn for turn complete sound
+    let previousTurn = 0;
+
     // Listen for full updates
     gameState.on('full-update', ({ state, isFirstUpdate }) => {
         console.log('Full update received:', state);
+
+        // Detect turn change and play sound
+        if (!isFirstUpdate && state.game_turn > previousTurn && previousTurn > 0) {
+            if (window.audioManager) {
+                window.audioManager.playTurnComplete();
+            }
+        }
+        previousTurn = state.game_turn;
 
         // Show game UI if player has joined
         if (state.player_name) {

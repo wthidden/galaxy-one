@@ -137,6 +137,11 @@ class MessageHandler {
     _handleChat(data) {
         this._logMessage(`[${data.from}]: ${data.message}`, 'chat');
 
+        // Play chat message sound
+        if (window.audioManager) {
+            window.audioManager.playChatMessage();
+        }
+
         // Could show in separate chat UI
         window.dispatchEvent(new CustomEvent('game-chat', {
             detail: data
@@ -148,6 +153,11 @@ class MessageHandler {
         const adminContent = document.getElementById('admin-message-content');
 
         if (adminPanel && adminContent) {
+            // Play admin message sound
+            if (window.audioManager) {
+                window.audioManager.playAdminMessage();
+            }
+
             // Update content with markdown parsing
             adminContent.innerHTML = this._parseMarkdown(data.text);
 
