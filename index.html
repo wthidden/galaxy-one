@@ -37,6 +37,28 @@
     <div id="game-container" style="display: none;">
         <div id="header">
             <h1>StarWeb</h1>
+            <div id="character-badge" style="display: none;">
+                <span id="character-badge-icon"></span>
+                <span id="character-badge-name"></span>
+            </div>
+            <div id="resource-hud" style="display: none;">
+                <div class="resource-item" title="Total Population">
+                    <span class="resource-icon">👥</span>
+                    <span id="total-population">0</span>
+                </div>
+                <div class="resource-item" title="Total Industry">
+                    <span class="resource-icon">🏭</span>
+                    <span id="total-industry">0</span>
+                </div>
+                <div class="resource-item" title="Total Metal">
+                    <span class="resource-icon">⚙️</span>
+                    <span id="total-metal">0</span>
+                </div>
+                <div class="resource-item" title="Total Ships">
+                    <span class="resource-icon">🚀</span>
+                    <span id="total-ships">0</span>
+                </div>
+            </div>
             <div id="timer-display">Turn 0 | 0:00 | 0/0 ready</div>
             <div id="header-controls">
                 <button id="audio-toggle-btn" class="header-btn" title="Toggle sound effects">🔊</button>
@@ -55,11 +77,25 @@
                     <div id="scoreboard" class="scrollable-list"></div>
                 </div>
                 <div id="my-worlds-section" class="sidebar-section flex-grow">
-                    <h3>My Worlds</h3>
+                    <div class="section-header">
+                        <h3>My Worlds</h3>
+                        <div class="filter-controls">
+                            <button class="filter-btn active" data-filter="own" title="Show my worlds">Mine</button>
+                            <button class="filter-btn" data-filter="all" title="Show all known worlds">All</button>
+                            <button class="filter-btn" data-filter="neutral" title="Show neutral worlds">Neutral</button>
+                            <button class="filter-btn" data-filter="enemy" title="Show enemy worlds">Enemy</button>
+                        </div>
+                    </div>
                     <div id="world-list" class="scrollable-list"></div>
                 </div>
                 <div id="my-fleets-section" class="sidebar-section flex-grow">
-                    <h3>My Fleets</h3>
+                    <div class="section-header">
+                        <h3>My Fleets</h3>
+                        <div class="filter-controls">
+                            <button class="filter-btn active" data-filter="own" title="Show my fleets">Mine</button>
+                            <button class="filter-btn" data-filter="all" title="Show all known fleets">All</button>
+                        </div>
+                    </div>
                     <div id="fleet-list" class="scrollable-list"></div>
                 </div>
             </div>
@@ -142,6 +178,71 @@
             <div class="modal-buttons">
                 <button id="bug-submit-btn" class="primary-btn">Submit Report</button>
                 <button id="bug-cancel-btn" class="secondary-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcuts-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>⌨️ Keyboard Shortcuts</h2>
+            <div class="shortcuts-grid">
+                <div class="shortcut-section">
+                    <h3>Navigation</h3>
+                    <div class="shortcut-item">
+                        <kbd>/</kbd>
+                        <span>Focus command input</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>ESC</kbd>
+                        <span>Clear command input</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>↑</kbd> <kbd>↓</kbd>
+                        <span>Command history</span>
+                    </div>
+                </div>
+                <div class="shortcut-section">
+                    <h3>Game Actions</h3>
+                    <div class="shortcut-item">
+                        <kbd>T</kbd>
+                        <span>End turn</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>H</kbd> or <kbd>?</kbd>
+                        <span>Show help / shortcuts</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>M</kbd>
+                        <span>Download manual</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>A</kbd>
+                        <span>Toggle audio</span>
+                    </div>
+                </div>
+                <div class="shortcut-section">
+                    <h3>Filters</h3>
+                    <div class="shortcut-item">
+                        <kbd>1</kbd>
+                        <span>My worlds</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>2</kbd>
+                        <span>All worlds</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>3</kbd>
+                        <span>Neutral worlds</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>4</kbd>
+                        <span>Enemy worlds</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="shortcuts-close-btn" class="secondary-btn">Close</button>
             </div>
         </div>
     </div>

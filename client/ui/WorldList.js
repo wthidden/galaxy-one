@@ -5,6 +5,14 @@ class WorldList {
     constructor(elementId) {
         this.element = document.getElementById(elementId);
         this.onWorldClick = null;
+        this.filter = 'own'; // own, all, neutral, enemy
+    }
+
+    /**
+     * Set the filter mode
+     */
+    setFilter(filter) {
+        this.filter = filter;
     }
 
     /**
@@ -13,23 +21,33 @@ class WorldList {
     update(gameState) {
         if (!this.element || !gameState.worlds || !gameState.player_name) return;
 
-        // Get player's worlds
-        const myWorlds = Object.values(gameState.worlds)
-            .filter(w => w.owner === gameState.player_name)
-            .sort((a, b) => {
-                // Sort by: key worlds first, then by ID
-                if (a.key && !b.key) return -1;
-                if (!a.key && b.key) return 1;
-                return a.id - b.id;
-            });
+        // Filter worlds based on filter mode
+        let worlds = Object.values(gameState.worlds);
+
+        if (this.filter === 'own') {
+            worlds = worlds.filter(w => w.owner === gameState.player_name);
+        } else if (this.filter === 'neutral') {
+            worlds = worlds.filter(w => !w.owner);
+        } else if (this.filter === 'enemy') {
+            worlds = worlds.filter(w => w.owner && w.owner !== gameState.player_name);
+        }
+        // 'all' shows everything, no filtering needed
+
+        // Sort worlds
+        worlds.sort((a, b) => {
+            // Sort by: key worlds first, then by ID
+            if (a.key && !b.key) return -1;
+            if (!a.key && b.key) return 1;
+            return a.id - b.id;
+        });
 
         // Build HTML
         let html = '<div class="world-list">';
 
-        if (myWorlds.length === 0) {
-            html += '<div class="empty-message">No worlds owned</div>';
+        if (worlds.length === 0) {
+            html += '<div class="empty-message">No worlds found</div>';
         } else {
-            myWorlds.forEach(world => {
+            worlds.forEach(world => {
                 const isKey = world.key ? '🔑' : '';
                 const iships = world.iships || 0;
                 const pships = world.pships || 0;
@@ -45,11 +63,20 @@ class WorldList {
                     artifactStr = `<span class="artifact-list" title="Artifacts: ${artifactIds}">✨${artifacts.length}</span>`;
                 }
 
+                // Show owner if not player's world
+                let ownerStr = '';
+                if (world.owner && world.owner !== gameState.player_name) {
+                    ownerStr = `<span class="world-owner" title="Owner">${world.owner}</span>`;
+                } else if (!world.owner) {
+                    ownerStr = `<span class="world-owner neutral" title="Neutral">Neutral</span>`;
+                }
+
                 html += `
                     <div class="world-entry" data-world-id="${world.id}">
                         <div class="world-header">
                             <span class="world-id">W${world.id}</span>
                             ${isKey ? `<span class="key-icon">${isKey}</span>` : ''}
+                            ${ownerStr}
                         </div>
                         <div class="world-stats">
                             <span title="Population">👥${population}</span>

@@ -5,6 +5,14 @@ class FleetList {
     constructor(elementId) {
         this.element = document.getElementById(elementId);
         this.onFleetClick = null;
+        this.filter = 'own'; // own, all
+    }
+
+    /**
+     * Set the filter mode
+     */
+    setFilter(filter) {
+        this.filter = filter;
     }
 
     /**
@@ -13,17 +21,21 @@ class FleetList {
     update(gameState) {
         if (!this.element || !gameState.fleets || !gameState.player_name) return;
 
-        // Get player's fleets
-        const myFleets = Object.values(gameState.fleets)
-            .filter(f => f.owner === gameState.player_name);
+        // Filter fleets based on filter mode
+        let fleets = Object.values(gameState.fleets);
 
-        if (myFleets.length === 0) {
-            this.element.innerHTML = '<div class="fleet-list"><div class="empty-message">No fleets</div></div>';
+        if (this.filter === 'own') {
+            fleets = fleets.filter(f => f.owner === gameState.player_name);
+        }
+        // 'all' shows everything, no filtering needed
+
+        if (fleets.length === 0) {
+            this.element.innerHTML = '<div class="fleet-list"><div class="empty-message">No fleets found</div></div>';
             return;
         }
 
         // Group fleets by world
-        const fleetsByWorld = this._groupFleetsByWorld(myFleets);
+        const fleetsByWorld = this._groupFleetsByWorld(fleets);
 
         // Sort worlds: conflict worlds first, then by world ID
         const sortedWorlds = this._sortWorldsByConflict(fleetsByWorld, gameState);
@@ -58,12 +70,19 @@ class FleetList {
                     artifactStr = `<span class="artifact-list" title="Artifacts: ${artifactIds}">✨${artifacts.length}</span>`;
                 }
 
+                // Show owner if not player's fleet
+                let ownerStr = '';
+                if (fleet.owner && fleet.owner !== gameState.player_name) {
+                    ownerStr = `<span class="fleet-owner" title="Owner">${fleet.owner}</span>`;
+                }
+
                 html += `
                     <div class="fleet-entry ${isEmpty ? 'empty-fleet' : ''}" data-fleet-id="${fleet.id}">
                         <div class="fleet-header">
                             <span class="fleet-id">F${fleet.id}</span>
                             ${isEmpty ? '<span class="empty-icon" title="Empty (no ships)">⚪</span>' : ''}
                             ${isMoving ? '<span class="moving-icon">➡️</span>' : ''}
+                            ${ownerStr}
                         </div>
                         <div class="fleet-stats">
                             <span title="Ships">🚀${ships}</span>

@@ -373,6 +373,21 @@ function setupUIListeners() {
         }
     });
 
+    // Shortcuts modal
+    const shortcutsModal = document.getElementById('shortcuts-modal');
+    const shortcutsCloseBtn = document.getElementById('shortcuts-close-btn');
+
+    shortcutsCloseBtn?.addEventListener('click', () => {
+        shortcutsModal.style.display = 'none';
+    });
+
+    // Close shortcuts modal when clicking outside
+    shortcutsModal?.addEventListener('click', (e) => {
+        if (e.target === shortcutsModal) {
+            shortcutsModal.style.display = 'none';
+        }
+    });
+
     commandInput?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             sendBtn?.click();
@@ -477,8 +492,110 @@ function setupUIListeners() {
         }
     });
 
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const filter = btn.getAttribute('data-filter');
+            const section = btn.closest('.sidebar-section');
+
+            // Update active state
+            section.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Apply filter
+            if (section.id === 'my-worlds-section') {
+                worldList.setFilter(filter);
+                updateSidebars();
+            } else if (section.id === 'my-fleets-section') {
+                fleetList.setFilter(filter);
+                updateSidebars();
+            }
+        });
+    });
+
     // Command hints are now handled by CommandInput internally
     // (input event listeners are set up in CommandInput constructor)
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Don't trigger shortcuts if typing in an input
+        const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+
+        // ESC - Clear command input (works even when typing)
+        if (e.key === 'Escape') {
+            const commandInput = document.getElementById('command-input');
+            if (commandInput) {
+                commandInput.value = '';
+                commandInput.blur();
+                if (commandInputManager) {
+                    commandInputManager.onInput('');
+                }
+            }
+            return;
+        }
+
+        // Skip other shortcuts if typing
+        if (isTyping) return;
+
+        // H or ? - Show keyboard shortcuts
+        if (e.key === 'h' || e.key === 'H' || e.key === '?') {
+            e.preventDefault();
+            const shortcutsModal = document.getElementById('shortcuts-modal');
+            if (shortcutsModal) {
+                shortcutsModal.style.display = 'flex';
+            }
+            return;
+        }
+
+        // T - End turn
+        if (e.key === 't' || e.key === 'T') {
+            e.preventDefault();
+            webSocketClient.sendCommand('TURN');
+            return;
+        }
+
+        // / - Focus command input
+        if (e.key === '/') {
+            e.preventDefault();
+            const commandInput = document.getElementById('command-input');
+            if (commandInput) {
+                commandInput.focus();
+                commandInput.select();
+            }
+            return;
+        }
+
+        // M - Download manual
+        if (e.key === 'm' || e.key === 'M') {
+            e.preventDefault();
+            const downloadModal = document.getElementById('download-modal');
+            if (downloadModal) {
+                downloadModal.style.display = 'flex';
+            }
+            return;
+        }
+
+        // A - Toggle audio
+        if (e.key === 'a' || e.key === 'A') {
+            e.preventDefault();
+            const audioToggleBtn = document.getElementById('audio-toggle-btn');
+            if (audioToggleBtn) {
+                audioToggleBtn.click();
+            }
+            return;
+        }
+
+        // 1-4 - Switch world filters
+        if (e.key >= '1' && e.key <= '4') {
+            e.preventDefault();
+            const worldFilterBtns = document.querySelectorAll('#my-worlds-section .filter-btn');
+            const filterMap = { '1': 0, '2': 1, '3': 2, '4': 3 }; // Mine, All, Neutral, Enemy
+            if (worldFilterBtns[filterMap[e.key]]) {
+                worldFilterBtns[filterMap[e.key]].click();
+            }
+            return;
+        }
+    });
 
     // Window resize
     window.addEventListener('resize', () => {
@@ -519,6 +636,9 @@ function setupStateListeners() {
                 loginOverlay.style.display = 'none';
                 gameContainer.style.display = 'flex';
                 resizeCanvas();
+
+                // Update character badge
+                updateCharacterBadge(state.character_type || 'Empire Builder');
             }
 
             // Update layers with player name
@@ -565,6 +685,7 @@ function updateAllUI() {
     updateScoreboard();
     updateActionList();
     updateSelectionInfoSidebar();
+    updateResourceHUD();
 }
 
 // Rendering setup
@@ -723,6 +844,88 @@ function focusCameraOnHomeworld() {
             camera.focusOn(pos.x, pos.y);
         }
     }
+}
+
+function updateCharacterBadge(characterType) {
+    const badge = document.getElementById('character-badge');
+    const icon = document.getElementById('character-badge-icon');
+    const name = document.getElementById('character-badge-name');
+
+    if (!badge || !icon || !name) return;
+
+    // Get character data
+    const charData = window.CharacterData[characterType];
+    if (!charData) return;
+
+    // Map character types to emojis
+    const characterEmojis = {
+        'Empire Builder': '🏭',
+        'Merchant': '💰',
+        'Pirate': '☠️',
+        'Artifact Collector': '🔮',
+        'Berserker': '⚔️',
+        'Apostle': '✨'
+    };
+
+    // Update badge content
+    icon.textContent = characterEmojis[characterType] || '🎭';
+    name.textContent = characterType;
+
+    // Create tooltip with abilities
+    const tooltip = charData.abilities.map((ability, i) => `• ${ability}`).join('\n');
+    badge.setAttribute('data-tooltip', tooltip);
+
+    // Show badge
+    badge.style.display = 'flex';
+}
+
+function updateResourceHUD() {
+    const state = gameState.getState();
+    if (!state || !state.player_name) return;
+
+    const resourceHud = document.getElementById('resource-hud');
+    if (!resourceHud) return;
+
+    // Calculate totals across all owned worlds
+    let totalPopulation = 0;
+    let totalIndustry = 0;
+    let totalMetal = 0;
+    let totalShips = 0;
+
+    // Sum world resources
+    if (state.worlds) {
+        Object.values(state.worlds).forEach(world => {
+            if (world.owner === state.player_name) {
+                totalPopulation += world.population || 0;
+                totalIndustry += world.industry || 0;
+                totalMetal += world.metal || 0;
+                totalShips += (world.iships || 0) + (world.pships || 0);
+            }
+        });
+    }
+
+    // Sum fleet ships
+    if (state.fleets) {
+        Object.values(state.fleets).forEach(fleet => {
+            if (fleet.owner === state.player_name) {
+                totalShips += fleet.ships || 0;
+            }
+        });
+    }
+
+    // Update display
+    const popElement = document.getElementById('total-population');
+    const indElement = document.getElementById('total-industry');
+    const metalElement = document.getElementById('total-metal');
+    const shipsElement = document.getElementById('total-ships');
+
+    if (popElement) popElement.textContent = totalPopulation.toLocaleString();
+    if (indElement) indElement.textContent = totalIndustry.toLocaleString();
+    if (metalElement) metalElement.textContent = totalMetal.toLocaleString();
+    if (shipsElement) shipsElement.textContent = totalShips.toLocaleString();
+
+    // Show HUD
+    resourceHud.style.display = 'flex';
 }
 
 function handleActionClick(actionId) {
