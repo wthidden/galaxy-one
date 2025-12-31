@@ -296,3 +296,116 @@ async def handle_get_game_info(websocket, data: dict):
         "game": game.to_dict(include_state=False),
         "scoreboard": scoreboard
     })
+
+
+async def handle_enter_game(websocket, data: dict):
+    """
+    Handle ENTER_GAME message.
+    Registers the player with the game and initializes their empire if needed.
+
+    Message format:
+    {
+        "type": "ENTER_GAME",
+        "token": "session_token",
+        "game_id": "game_uuid"
+    }
+    """
+    from ..auth.auth_manager import get_auth_manager
+    from ..game_manager import get_game_manager
+    from ..message_sender import get_message_sender
+    from ..connection_manager import get_connection_manager
+    from ..game.state import get_game_state
+    from ..game.entities import Player
+
+    auth_manager = get_auth_manager()
+    game_manager = get_game_manager()
+    sender = get_message_sender()
+    connection_manager = get_connection_manager()
+    game_state = get_game_state()
+
+    # Validate session
+    token = data.get("token")
+    if not token:
+        await sender.send_error_ws(websocket, "No session token provided")
+        return
+
+    account = auth_manager.validate_session(token)
+    if not account:
+        await sender.send_error_ws(websocket, "Invalid session")
+        return
+
+    # Get parameters
+    game_id = data.get("game_id")
+    if not game_id:
+        await sender.send_error_ws(websocket, "Game ID required")
+        return
+
+    # Get game
+    game = game_manager.get_game(game_id)
+    if not game:
+        await sender.send_error_ws(websocket, "Game not found")
+        return
+
+    # Check if player is in this game
+    if account.id not in game.players:
+        await sender.send_error_ws(websocket, "You are not in this game")
+        return
+
+    player_in_game = game.players[account.id]
+
+    # Check if player already exists in game state (reconnection)
+    existing_player = None
+    for p in game_state.players.values():
+        if p.name == player_in_game.character_name:
+            existing_player = p
+            break
+
+    if existing_player:
+        # Reconnect existing player
+        # Update websocket in existing player
+        existing_player.websocket = websocket
+        # Manually register with connection manager
+        connection_manager._connections[websocket] = existing_player
+        connection_manager._players_by_id[existing_player.id] = existing_player
+
+        await sender.send_info(existing_player, f"Welcome back, {existing_player.name}!")
+        await sender.send_full_update(existing_player)
+        logger.info(f"Player {existing_player.name} reconnected to game")
+    else:
+        # New player - initialize them using JOIN logic
+        # Get next player ID from game state
+        next_player_id = len(game_state.players) + 1
+
+        # Create player entity
+        player = Player(player_id=next_player_id, name=player_in_game.character_name, websocket=websocket)
+        player.character_type = player_in_game.character_type
+        player.turn_timer_minutes = 60  # Default
+
+        # Register with connection manager manually
+        connection_manager._connections[websocket] = player
+        connection_manager._players_by_id[player.id] = player
+
+        # Add to game state
+        game_state.players[next_player_id] = player
+
+        # Import JOIN logic
+        from ..game.command_handlers import handle_join
+
+        # Create fake command parts for JOIN
+        command_parts = ["JOIN", player_in_game.character_name, player_in_game.character_type]
+        full_command = " ".join(command_parts)
+
+        # Execute JOIN logic to set up homeworld and fleets
+        await handle_join(player, full_command, command_parts)
+
+        # Send initial full update
+        await sender.send_full_update(player)
+
+        logger.info(f"Player {player.name} ({player.character_type}) entered game {game.name}")
+
+    # Send success response
+    await sender.send_message_ws(websocket, {
+        "type": "GAME_ENTERED",
+        "game_id": game_id,
+        "message": "Entered game successfully"
+    })

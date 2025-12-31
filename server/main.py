@@ -199,13 +199,15 @@ async def main():
         handle_create_game,
         handle_join_game,
         handle_leave_game,
-        handle_get_game_info
+        handle_get_game_info,
+        handle_enter_game
     )
     message_router.register_websocket_handler("LIST_GAMES", handle_list_games)
     message_router.register_websocket_handler("CREATE_GAME", handle_create_game)
     message_router.register_websocket_handler("JOIN_GAME", handle_join_game)
     message_router.register_websocket_handler("LEAVE_GAME", handle_leave_game)
     message_router.register_websocket_handler("GET_GAME_INFO", handle_get_game_info)
+    message_router.register_websocket_handler("ENTER_GAME", handle_enter_game)
 
     # Game handlers (player-level, require game membership)
     message_router.register_handler("command", handle_command_message)

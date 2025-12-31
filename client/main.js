@@ -34,7 +34,7 @@ let actionList;
 let commandInputManager; // Enhanced command input with parser
 
 // Initialize application
-function initializeApp() {
+function initializeApp(alreadyConnected = false) {
     console.log('Initializing StarWeb client...');
 
     // Setup message handler to connect network and state
@@ -43,8 +43,14 @@ function initializeApp() {
     // Initialize UI panels
     initializeUIPanels();
 
-    // Connect to server
-    webSocketClient.connect();
+    // Connect to server (unless we're reusing an existing connection from lobby)
+    if (!alreadyConnected) {
+        webSocketClient.connect();
+    } else {
+        console.log('Reusing existing WebSocket connection from lobby');
+        // Trigger connected event manually since we're reusing the connection
+        webSocketClient._notifyHandlers('connected', null);
+    }
 
     // Setup UI event listeners
     setupUIListeners();
@@ -56,7 +62,10 @@ function initializeApp() {
     setupCanvas();
 
     // Attempt auto-reconnect if saved credentials exist
-    attemptAutoReconnect();
+    // (but skip if we're already connected via lobby)
+    if (!alreadyConnected) {
+        attemptAutoReconnect();
+    }
 
     console.log('StarWeb client initialized');
 }
@@ -1374,9 +1383,6 @@ function setupCanvasInteraction(canvas) {
     });
 }
 
-// Start app when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
-}
+// Don't auto-initialize - let app.js call initializeApp() when entering a game
+// The app.js controller handles screen routing (login → lobby → game)
+// and will call initializeApp(true) when the user enters a game

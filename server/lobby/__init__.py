@@ -6,7 +6,8 @@ from .lobby_handlers import (
     handle_create_game,
     handle_join_game,
     handle_leave_game,
-    handle_get_game_info
+    handle_get_game_info,
+    handle_enter_game
 )
 
 __all__ = [
@@ -14,5 +15,6 @@ __all__ = [
     'handle_create_game',
     'handle_join_game',
     'handle_leave_game',
-    'handle_get_game_info'
+    'handle_get_game_info',
+    'handle_enter_game'
 ]

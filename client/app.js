@@ -333,12 +333,41 @@ class StarWebApp {
 
         console.log('Entering game:', game);
 
+        // Hide app container
+        this.appContainer.style.display = 'none';
+
         // Show the game UI elements
-        document.getElementById('game-container').style.display = 'block';
+        document.getElementById('game-container').style.display = 'flex';
+
+        // Send ENTER_GAME message to server
+        const message = {
+            type: 'ENTER_GAME',
+            token: this.sessionData.token,
+            game_id: game.id
+        };
+        this.ws.send(JSON.stringify(message));
+
+        // Pass the existing websocket to the game screen
+        // so it doesn't create a new connection
+        if (typeof webSocketClient !== 'undefined') {
+            webSocketClient.socket = this.ws;
+            webSocketClient.isConnecting = false;
+
+            // Set up message handlers to route to game's message handler
+            this.ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    webSocketClient._handleMessage(data);
+                } catch (e) {
+                    console.error('Failed to parse message:', e, event.data);
+                }
+            };
+        }
 
         // Initialize the game screen (from main.js)
+        // Don't let it reconnect - we're reusing the lobby websocket
         if (typeof initializeApp === 'function') {
-            initializeApp();
+            initializeApp(true); // Pass true to indicate we're already connected
         }
     }
 
@@ -360,6 +389,11 @@ class StarWebApp {
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
             gameContainer.style.display = 'none';
+        }
+
+        // Show app container for login/lobby
+        if (this.appContainer) {
+            this.appContainer.style.display = 'block';
         }
     }
 }
