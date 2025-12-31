@@ -1,5 +1,11 @@
 # StarWeb Admin Commands
 
+**⚠️ PRODUCTION SERVERS**: If you're running via Docker (docker-compose), use **[DOCKER_ADMIN.md](DOCKER_ADMIN.md)** instead!
+
+This guide is for **local development** only (running `python3 -m server.main` directly).
+
+---
+
 ## Quick Reset (Recommended)
 
 The easiest way to reset everything:
@@ -13,6 +19,8 @@ This will:
 - Backup all current data
 - Clear all games, accounts, and state
 - Optionally restart the server
+
+**Note**: This only works for local development, not Docker deployments.
 
 ## CLI Commands
 
