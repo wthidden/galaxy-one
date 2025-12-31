@@ -4,11 +4,14 @@ StarWeb Game Management CLI
 
 Commands:
   new-game              - Start a new game (clears existing state)
+  reset-all             - Reset everything (accounts, sessions, games, state)
   show-config           - Display current configuration
   validate-config       - Validate configuration file
   backup-state          - Backup current game state
   restore-state [file]  - Restore game state from backup
   view-bug-reports      - View recent bug reports from players
+
+Note: These commands should be run while the server is STOPPED.
 """
 import argparse
 import sys
@@ -33,14 +36,17 @@ def new_game(args):
     print("StarWeb - New Game Initialization")
     print("=" * 60)
 
-    # Confirm if state file exists
+    # Confirm if state file exists (skip if --force)
     persistence = GameStatePersistence()
-    if persistence.save_file.exists():
+    if persistence.save_file.exists() and not args.force:
         response = input(f"\n⚠️  Existing game state found at {persistence.save_file}\n"
                         "This will DELETE the current game. Continue? (yes/no): ")
         if response.lower() not in ['yes', 'y']:
             print("Cancelled.")
             return
+    elif persistence.save_file.exists():
+        print(f"\n⚠️  Existing game state found at {persistence.save_file}")
+        print("Force mode enabled - proceeding without confirmation...")
 
         # Backup existing state
         backup_name = f"{persistence.save_file}.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -229,6 +235,68 @@ def restore_state(args):
         return 1
 
 
+def reset_all(args):
+    """Reset everything - game state, accounts, sessions, and games."""
+    from pathlib import Path
+
+    print("=" * 60)
+    print("StarWeb - Complete Reset")
+    print("=" * 60)
+
+    # List what will be deleted
+    files_to_delete = []
+    data_dir = Path("data")
+
+    if (data_dir / "gamestate.json").exists():
+        files_to_delete.append("Game state")
+    if (data_dir / "accounts.json").exists():
+        files_to_delete.append("Player accounts")
+    if (data_dir / "sessions.json").exists():
+        files_to_delete.append("Active sessions")
+    if (data_dir / "games.json").exists():
+        files_to_delete.append("Game instances")
+
+    if not files_to_delete:
+        print("\n✓ No data files found. System is already clean.")
+        return 0
+
+    print(f"\nThis will delete:")
+    for item in files_to_delete:
+        print(f"  - {item}")
+
+    if not args.force:
+        response = input("\n⚠️  This will DELETE ALL game data. Continue? (yes/no): ")
+        if response.lower() not in ['yes', 'y']:
+            print("Cancelled.")
+            return 0
+
+    # Create backup
+    backup_dir = data_dir / "backups" / f"reset_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"\nCreating backup in: {backup_dir}")
+    for filename in ["gamestate.json", "accounts.json", "sessions.json", "games.json"]:
+        source = data_dir / filename
+        if source.exists():
+            shutil.copy(source, backup_dir / filename)
+            print(f"  ✓ Backed up {filename}")
+
+    # Delete files
+    print("\nDeleting data files...")
+    for filename in ["gamestate.json", "accounts.json", "sessions.json", "games.json"]:
+        filepath = data_dir / filename
+        if filepath.exists():
+            filepath.unlink()
+            print(f"  ✓ Deleted {filename}")
+
+    print("\n" + "=" * 60)
+    print("Reset complete!")
+    print(f"Backup saved to: {backup_dir}")
+    print("\nRestart the server to begin with a clean state.")
+    print("=" * 60)
+    return 0
+
+
 def view_bug_reports(args):
     """View recent bug reports from players."""
     from server.bug_reporter import BugReporter
@@ -272,6 +340,7 @@ def main():
 
     # new-game command
     new_game_parser = subparsers.add_parser('new-game', help='Start a new game (clears existing state)')
+    new_game_parser.add_argument('--force', action='store_true', help='Skip confirmation prompt')
     new_game_parser.set_defaults(func=new_game)
 
     # show-config command
@@ -297,6 +366,11 @@ def main():
     view_reports_parser = subparsers.add_parser('view-bug-reports', help='View recent bug reports from players')
     view_reports_parser.add_argument('--limit', type=int, default=20, help='Number of reports to show (default: 20)')
     view_reports_parser.set_defaults(func=view_bug_reports)
+
+    # reset-all command
+    reset_all_parser = subparsers.add_parser('reset-all', help='Reset everything (game state, accounts, sessions, games)')
+    reset_all_parser.add_argument('--force', action='store_true', help='Skip confirmation prompt')
+    reset_all_parser.set_defaults(func=reset_all)
 
     args = parser.parse_args()
 
