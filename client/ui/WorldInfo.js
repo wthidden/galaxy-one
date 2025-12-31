@@ -31,6 +31,15 @@ class WorldInfo {
             </div>
         `;
 
+        // BLACK HOLE WARNING
+        if (world.is_blackhole) {
+            html += '<div class="info-section blackhole-warning">';
+            html += '<div class="section-label">⚫ BLACK HOLE ⚫</div>';
+            html += '<div class="warning-text">Ships entering this world will be DESTROYED!</div>';
+            html += '<div class="warning-text">Fleet keys will respawn at random locations.</div>';
+            html += '</div>';
+        }
+
         // Resources
         html += '<div class="info-section">';
         html += '<div class="section-label">Resources</div>';

@@ -53,6 +53,25 @@ class GameState:
             w.population = random.randint(population_range[0], max_pop)
             self.worlds[i] = w
 
+        # Designate some worlds as black holes (about 3-5% of total)
+        num_blackholes = max(3, int(self.map_size * 0.04))  # 4% of worlds, minimum 3
+        blackhole_candidates = list(range(1, self.map_size + 1))
+        random.shuffle(blackhole_candidates)
+
+        for world_id in blackhole_candidates[:num_blackholes]:
+            w = self.worlds[world_id]
+            w.is_blackhole = True
+            # Black holes have no resources
+            w.industry = 0
+            w.mines = 0
+            w.metal = 0
+            w.population = 0
+            w.limit = 0
+            w.iships = 0
+            w.pships = 0
+
+        logger.info(f"Created {num_blackholes} black holes out of {self.map_size} worlds")
+
         # Create connections
         min_conn = world_settings.get('min_connections', 2)
         max_conn = world_settings.get('max_connections', 4)

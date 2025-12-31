@@ -41,6 +41,11 @@ async def execute_move_order(order: dict):
         if not dest_world:
             continue
 
+        # Check for black hole - ships are destroyed, key respawns
+        if dest_world.is_blackhole:
+            await handle_blackhole(fleet, dest_world, player)
+            return  # Fleet destroyed
+
         # Check for ambush
         ambushers = [
             f for f in dest_world.fleets
@@ -53,7 +58,7 @@ async def execute_move_order(order: dict):
 
         current_world = dest_world
 
-    # No ambush - complete move
+    # No ambush or black hole - complete move
     final_dest = game_state.get_world(path[-1])
     if fleet.world != final_dest:
         fleet.world.fleets.remove(fleet)
@@ -117,6 +122,65 @@ async def handle_ambush(fleet, dest_world, ambushers, player):
             )
 
 
+async def handle_blackhole(fleet, blackhole_world, player):
+    """
+    Handle fleet entering a black hole.
+    All ships are destroyed, fleet key respawns at random location with artifacts.
+
+    Args:
+        fleet: Fleet entering black hole
+        blackhole_world: The black hole world
+        player: Owner of fleet (can be None for neutral fleets)
+    """
+    game_state = get_game_state()
+    sender = get_message_sender()
+
+    # Save artifacts before destruction
+    artifacts = fleet.artifacts.copy()
+    ships_lost = fleet.ships
+
+    # Remove fleet from old world
+    fleet.world.fleets.remove(fleet)
+
+    # Destroy all ships and cargo
+    fleet.ships = 0
+    fleet.cargo = 0
+
+    # Find a random non-blackhole world for respawn
+    respawn_candidates = [w for w in game_state.worlds.values() if not w.is_blackhole]
+    if respawn_candidates:
+        import random
+        respawn_world = random.choice(respawn_candidates)
+
+        # Move fleet to respawn location
+        fleet.world = respawn_world
+        respawn_world.fleets.append(fleet)
+
+        # Fleet keeps its artifacts
+        # (artifacts are already on fleet.artifacts, no need to reassign)
+
+        # Notify player
+        if player:
+            await sender.send_event(
+                player,
+                f"Fleet {fleet.id} was destroyed by BLACK HOLE at World {blackhole_world.id}! "
+                f"Lost {ships_lost} ships. Fleet key respawned at World {respawn_world.id}"
+                + (f" with {len(artifacts)} artifact(s)." if artifacts else "."),
+                "blackhole"
+            )
+            logger.info(f"Fleet {fleet.id} destroyed by black hole at W{blackhole_world.id}, "
+                       f"respawned at W{respawn_world.id} with {len(artifacts)} artifacts")
+    else:
+        # Extremely unlikely - no valid respawn location, fleet is lost
+        logger.error(f"Fleet {fleet.id} destroyed by black hole but no valid respawn location!")
+        if player:
+            await sender.send_event(
+                player,
+                f"Fleet {fleet.id} was destroyed by BLACK HOLE at World {blackhole_world.id} and lost in space!",
+                "blackhole"
+            )
+
+
 async def set_ambush(fleet_id: int, player):
     """
     Set a fleet to ambush mode.
@@ -164,25 +228,30 @@ async def execute_probe_order(order: dict):
 
         # Send probe information
         probe_info = f"Probe of W{target_world_id}: "
-        probe_info += f"Pop={target_world.population}, "
-        probe_info += f"Ind={target_world.industry}, "
-        probe_info += f"Metal={target_world.metal}, "
-        probe_info += f"Mines={target_world.mines}, "
-        probe_info += f"I{target_world.iships}/P{target_world.pships}"
 
-        if target_world.owner:
-            probe_info += f" (owned by {target_world.owner.name})"
+        # Check for black hole first!
+        if target_world.is_blackhole:
+            probe_info += "⚫ BLACK HOLE DETECTED! ⚫ Ships entering this world will be DESTROYED!"
         else:
-            probe_info += " (neutral)"
+            probe_info += f"Pop={target_world.population}, "
+            probe_info += f"Ind={target_world.industry}, "
+            probe_info += f"Metal={target_world.metal}, "
+            probe_info += f"Mines={target_world.mines}, "
+            probe_info += f"I{target_world.iships}/P{target_world.pships}"
 
-        # Count fleets at world
-        fleets_at_world = [f for f in game_state.fleets.values() if f.world.id == target_world_id and f.ships > 0]
-        if fleets_at_world:
-            probe_info += f", {len(fleets_at_world)} fleets present"
+            if target_world.owner:
+                probe_info += f" (owned by {target_world.owner.name})"
+            else:
+                probe_info += " (neutral)"
 
-        # Count artifacts
-        if target_world.artifacts:
-            probe_info += f", {len(target_world.artifacts)} artifacts"
+            # Count fleets at world
+            fleets_at_world = [f for f in game_state.fleets.values() if f.world.id == target_world_id and f.ships > 0]
+            if fleets_at_world:
+                probe_info += f", {len(fleets_at_world)} fleets present"
+
+            # Count artifacts
+            if target_world.artifacts:
+                probe_info += f", {len(target_world.artifacts)} artifacts"
 
         await sender.send_event(player, probe_info, "probe")
         logger.info(f"F{source_id} probed W{target_world_id}")
@@ -205,23 +274,28 @@ async def execute_probe_order(order: dict):
 
         # Send probe information (same as fleet probe)
         probe_info = f"Probe of W{target_world_id}: "
-        probe_info += f"Pop={target_world.population}, "
-        probe_info += f"Ind={target_world.industry}, "
-        probe_info += f"Metal={target_world.metal}, "
-        probe_info += f"Mines={target_world.mines}, "
-        probe_info += f"I{target_world.iships}/P{target_world.pships}"
 
-        if target_world.owner:
-            probe_info += f" (owned by {target_world.owner.name})"
+        # Check for black hole first!
+        if target_world.is_blackhole:
+            probe_info += "⚫ BLACK HOLE DETECTED! ⚫ Ships entering this world will be DESTROYED!"
         else:
-            probe_info += " (neutral)"
+            probe_info += f"Pop={target_world.population}, "
+            probe_info += f"Ind={target_world.industry}, "
+            probe_info += f"Metal={target_world.metal}, "
+            probe_info += f"Mines={target_world.mines}, "
+            probe_info += f"I{target_world.iships}/P{target_world.pships}"
 
-        fleets_at_world = [f for f in game_state.fleets.values() if f.world.id == target_world_id and f.ships > 0]
-        if fleets_at_world:
-            probe_info += f", {len(fleets_at_world)} fleets present"
+            if target_world.owner:
+                probe_info += f" (owned by {target_world.owner.name})"
+            else:
+                probe_info += " (neutral)"
 
-        if target_world.artifacts:
-            probe_info += f", {len(target_world.artifacts)} artifacts"
+            fleets_at_world = [f for f in game_state.fleets.values() if f.world.id == target_world_id and f.ships > 0]
+            if fleets_at_world:
+                probe_info += f", {len(fleets_at_world)} fleets present"
+
+            if target_world.artifacts:
+                probe_info += f", {len(target_world.artifacts)} artifacts"
 
         await sender.send_event(player, probe_info, "probe")
         logger.info(f"{source_type}SHIPS@W{source_id} probed W{target_world_id}")

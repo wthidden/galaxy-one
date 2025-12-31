@@ -6,6 +6,7 @@
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
 3. [User Interface](#user-interface)
+   - [Keyboard Shortcuts](#keyboard-shortcuts)
 4. [Game Concepts](#game-concepts)
 5. [Commands Reference](#commands-reference)
 6. [Game Mechanics](#game-mechanics)
@@ -69,21 +70,47 @@ When you join, you'll start with:
 ### Screen Layout
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ Header: Turn Timer | Connection Status              │
-├──────────┬──────────────────────────┬───────────────┤
-│          │                          │               │
-│ Left     │   Canvas (Map View)      │ Right         │
-│ Sidebar  │                          │ Sidebar       │
-│          │                          │               │
-│ • Score  ├──────────────────────────┤ • Orders      │
-│ • Worlds │   Event Log              │ • Selection   │
-│ • Fleets │                          │   Info        │
-│          │                          │               │
-├──────────┴──────────────────────────┴───────────────┤
-│ Command Input                                       │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ Header: Character Badge | Resource HUD | Timer | Audio | Status │
+├──────────┬──────────────────────────┬─────────────────────────┤
+│          │                          │                         │
+│ Left     │   Canvas (Map View)      │ Right                   │
+│ Sidebar  │                          │ Sidebar                 │
+│          │                          │                         │
+│ • Score  ├──────────────────────────┤ • Orders                │
+│ • Worlds │   Event Log              │ • Selection             │
+│ • Fleets │                          │   Info                  │
+│          │                          │                         │
+├──────────┴──────────────────────────┴─────────────────────────┤
+│ Command Input | Help | Manual | Bug Report | Send             │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+### Header
+
+**Character Ability Badge** (Left)
+- Shows your character type with emoji icon
+- Hover to see your special abilities in a tooltip
+- Persistent reminder of your character bonuses
+- Example: 🏭 Empire Builder
+
+**Resource Summary HUD** (Center-Left)
+- Real-time totals across all your worlds
+- 👥 Total Population
+- 🏭 Total Industry
+- ⚙️ Total Metal
+- 🚀 Total Ships (includes fleet ships + world defenses)
+- Updates automatically as you build, move, or capture
+
+**Turn Timer** (Center)
+- Current turn number
+- Time remaining until next turn
+- Players ready count (e.g., "3/5 ready")
+
+**Header Controls** (Right)
+- 🔊 Audio toggle button
+- 🚪 Logout button
+- Connection status indicator
 
 ### Left Sidebar
 
@@ -92,15 +119,20 @@ When you join, you'll start with:
 - Your position highlighted
 
 **My Worlds**
-- Lists all worlds you own
+- Lists worlds based on selected filter
+- **Filter buttons**: Mine (default) | All | Neutral | Enemy
+- **Keyboard shortcuts**: Press 1-4 to switch filters quickly
 - Shows population, industry, defenses (I#/P# format)
 - 🔑 icon marks your homeworld
+- Enemy/neutral worlds show owner badges
 - Click to select and view details
 
 **My Fleets**
-- Lists all your fleets
+- Lists fleets based on selected filter
+- **Filter buttons**: Mine (default) | All
 - Grouped by location
 - Shows ships, cargo, artifacts
+- Enemy fleets show owner badges
 - Conflict indicator ⚔️ for hostile fleets present
 
 ### Center Panel
@@ -146,7 +178,38 @@ At the bottom:
 - Type commands directly
 - Auto-complete suggestions appear
 - **?** button for help
+- **📖** button to download manual
+- **🐛** button to report bugs
 - **Send** to execute command
+- Press **Enter** to send command
+- Press **↑** and **↓** to navigate command history
+
+### Keyboard Shortcuts
+
+Press **H** or **?** during gameplay to see the shortcuts reference modal.
+
+**Navigation**
+- `/` - Focus command input
+- `ESC` - Clear command input
+- `↑` `↓` - Navigate command history
+
+**Game Actions**
+- `T` - End turn (submit TURN command)
+- `H` or `?` - Show keyboard shortcuts modal
+- `M` - Download manual
+- `A` - Toggle audio on/off
+
+**World Filters** (switch what the "My Worlds" list displays)
+- `1` - My worlds (default)
+- `2` - All known worlds
+- `3` - Neutral worlds only
+- `4` - Enemy worlds only
+
+**Mouse Controls**
+- **Click** world or fleet - Select it
+- **Drag** canvas - Pan the map
+- **Scroll** - Zoom in/out
+- **Hover** - Show quick info in status panel
 
 ---
 
@@ -170,6 +233,38 @@ Worlds are planets you can control and develop.
 - **Colonized**: Worlds you've captured
 - **Neutral**: Unowned worlds ready to colonize
 - **Enemy**: Controlled by opponents
+- **⚫ Black Holes**: Dangerous voids that destroy ships
+
+#### Black Holes
+
+**WARNING: Black holes are extremely dangerous!**
+
+A few worlds on the map are black holes. These cosmic voids have special properties:
+
+**Effects:**
+- ⚫ **Ships are destroyed** - All ships moving into or through a black hole are instantly destroyed
+- 🔑 **Fleet keys respawn** - The fleet key reappears at a random location in the galaxy
+- ✨ **Artifacts preserved** - Any artifacts on the destroyed fleet respawn with the key
+- 📦 **Cargo lost** - All cargo is destroyed
+
+**Detection:**
+- **Probe to reveal** - Use `F#P#` or `I#P#`/`P#P#` to probe adjacent worlds
+- **Visual appearance** - Black holes appear as dark voids with purple accretion disks on the map
+- **Selection info** - Clicking a black hole shows a warning message
+
+**Protection:**
+- **Homeworlds safe** - You will never start adjacent to a black hole
+- **One-way trip** - Once ships enter, they cannot escape
+
+**Strategic Use:**
+- **Dispose of bad artifacts** - Intentionally fly a fleet with unwanted artifacts into a black hole
+- **Trap detection** - Probe suspicious worlds before moving valuable fleets
+- **Avoid pathfinding** - Don't create movement paths that go through black holes
+
+**Example:**
+```
+Probe of W42: ⚫ BLACK HOLE DETECTED! ⚫ Ships entering this world will be DESTROYED!
+```
 
 #### Population Types
 - **Human** 👥: Standard population

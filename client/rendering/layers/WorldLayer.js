@@ -58,6 +58,36 @@ class WorldLayer extends BaseLayer {
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, pos.radius, 0, 2 * Math.PI);
 
+        // BLACK HOLE - render as dark void with purple accretion disk
+        if (world.is_blackhole) {
+            // Dark center
+            const blackGradient = ctx.createRadialGradient(
+                pos.x,
+                pos.y,
+                0,
+                pos.x,
+                pos.y,
+                pos.radius
+            );
+            blackGradient.addColorStop(0, '#000000');
+            blackGradient.addColorStop(0.6, '#0a0a0a');
+            blackGradient.addColorStop(1, '#2d1b4e'); // Dark purple edge
+            ctx.fillStyle = blackGradient;
+            ctx.fill();
+
+            // Purple accretion disk glow
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, pos.radius + 3, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#8b00ff';
+            ctx.lineWidth = 2 / camera.zoom;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#8b00ff';
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Reset shadow
+
+            return; // Skip normal rendering
+        }
+
         // Fill color based on owner
         const isMyHomeworld = world.key && world.owner === this.myPlayerName;
 

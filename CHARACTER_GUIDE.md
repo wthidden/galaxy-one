@@ -2,6 +2,16 @@
 
 Choose your destiny among the stars. Each character type offers a unique path to victory with special abilities, strategic advantages, and distinct playstyles.
 
+## UI Feature: Character Ability Badge
+
+Once you join the game, your **Character Ability Badge** appears in the header (top-left). This badge:
+- Shows your character type with an emoji icon (e.g., 🏭 Empire Builder)
+- Displays a tooltip when you hover over it
+- Lists all your special abilities for quick reference
+- Serves as a persistent reminder of your strategic advantages
+
+This feature helps you remember your character's unique powers during gameplay, ensuring you maximize your advantages.
+
 ---
 
 ## 🏭 Empire Builder - The Master of Industry

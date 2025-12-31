@@ -30,6 +30,7 @@ class World:
         self.population_type = "human"  # "human", "robot", "apostle"
         self.plundered = False  # True if world has been plundered this turn
         self.planet_buster = False  # True if planet buster bomb has been dropped
+        self.is_blackhole = False  # True if this world is a black hole (destroys ships)
 
     def to_dict(self, viewer=None, turn_last_seen=None):
         data = {
@@ -63,6 +64,7 @@ class World:
                 "population_type": self.population_type,  # "human", "robot", "apostle"
                 "plundered": self.plundered,  # Plundered status
                 "planet_buster": self.planet_buster,  # Planet buster bomb status
+                "is_blackhole": self.is_blackhole,  # Black hole status
                 "fleets": [f.id for f in self.fleets],
                 "artifacts": [a.to_dict() for a in self.artifacts]
             })

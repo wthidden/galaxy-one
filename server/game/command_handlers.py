@@ -171,20 +171,32 @@ async def handle_join(player, full_command, parts):
         hw = game_state.worlds[hw_id]
         excluded_worlds.update(hw.connections)
 
-    # Find neutral worlds that are at least 1 hop from any existing homeworld
+    # Also exclude black holes and their adjacent worlds
+    blackholes = [w.id for w in game_state.worlds.values() if w.is_blackhole]
+    excluded_worlds.update(blackholes)
+    for bh_id in blackholes:
+        bh = game_state.worlds[bh_id]
+        excluded_worlds.update(bh.connections)
+
+    # Find neutral worlds that are at least 1 hop from any existing homeworld or black hole
     candidates = [w for w in game_state.worlds.values()
-                 if w.owner is None and w.id not in excluded_worlds]
+                 if w.owner is None and w.id not in excluded_worlds and not w.is_blackhole]
 
     if candidates:
         start_world = random.choice(candidates)
     else:
-        # Fallback if no distant worlds available - just pick any neutral world
-        candidates = [w for w in game_state.worlds.values() if w.owner is None]
+        # Fallback if no distant worlds available - just pick any neutral non-blackhole world
+        candidates = [w for w in game_state.worlds.values() if w.owner is None and not w.is_blackhole]
         if candidates:
             start_world = random.choice(candidates)
         else:
-            # Last resort - pick any world
-            start_world = game_state.worlds[random.randint(1, game_state.map_size)]
+            # Last resort - pick any non-blackhole world
+            non_blackholes = [w for w in game_state.worlds.values() if not w.is_blackhole]
+            if non_blackholes:
+                start_world = random.choice(non_blackholes)
+            else:
+                # Extremely unlikely - pick any world
+                start_world = game_state.worlds[random.randint(1, game_state.map_size)]
 
     # Remove existing owner if any
     if start_world.owner:

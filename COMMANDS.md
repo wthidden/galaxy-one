@@ -2,9 +2,50 @@
 
 This document lists all supported commands in the StarWeb game, their syntax, and visual feedback.
 
+## Table of Contents
+
+1. [Keyboard Shortcuts](#keyboard-shortcuts)
+2. [Command Format](#command-format)
+3. [Game Commands](#game-commands)
+
+---
+
+## Keyboard Shortcuts
+
+**Quick Commands** - Execute without typing
+
+- `T` - End turn (submit TURN command)
+- `H` or `?` - Show keyboard shortcuts modal
+- `M` - Download manual
+- `A` - Toggle audio on/off
+
+**Navigation**
+
+- `/` - Focus command input
+- `ESC` - Clear command input
+- `↑` `↓` - Navigate command history
+- `Enter` - Send command
+
+**World Filters** (switch what "My Worlds" list displays)
+
+- `1` - My worlds (default)
+- `2` - All known worlds
+- `3` - Neutral worlds only
+- `4` - Enemy worlds only
+
+**Mouse Controls**
+
+- **Click** - Select world or fleet
+- **Drag** - Pan the map
+- **Scroll** - Zoom in/out
+
+---
+
 ## Command Format
 
 All commands are case-insensitive and follow these patterns:
+
+## Game Commands
 
 ---
 
