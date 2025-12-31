@@ -57,18 +57,28 @@ class WorldInfo {
         if (world.population_type === 'robot') {
             popIcon = '🤖';
             popType = ' (Robots)';
-        } else if (world.population_type === 'apostle') {
-            popIcon = '✝️';
-            popType = ' (Apostles)';
         }
 
-        html += '<div class="info-row"><span>Population:</span><span>' + popIcon + ' ' + (world.population || 0);
-        if (world.limit && world.limit > 0) {
-            html += ' / ' + world.limit + popType;
+        // Normal population
+        if (world.population_type !== 'robot') {
+            html += '<div class="info-row"><span>Normal:</span><span>' + popIcon + ' ' + (world.population || 0);
+            if (world.limit && world.limit > 0) {
+                html += ' / ' + world.limit;
+            }
+            html += '</span></div>';
         } else {
-            html += popType;
+            // Robot population (no limit)
+            html += '<div class="info-row"><span>Robots:</span><span>' + popIcon + ' ' + (world.population || 0) + popType + '</span></div>';
         }
-        html += '</span></div>';
+
+        // Converts (Apostle population)
+        if (world.converts && world.converts > 0) {
+            html += '<div class="info-row"><span>Converts:</span><span>✝️ ' + world.converts;
+            if (world.convert_owner) {
+                html += ' (' + world.convert_owner + ')';
+            }
+            html += '</span></div>';
+        }
 
         // Effective population (available for work)
         if (world.population !== '?') {

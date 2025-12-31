@@ -27,7 +27,9 @@ class World:
         self.fleets = []
         self.artifacts = []
         self.key = False  # True if this is a player's homeworld
-        self.population_type = "human"  # "human", "robot", "apostle"
+        self.population_type = "normal"  # "normal" or "robot"
+        self.converts = 0  # Number of converted population (Apostle)
+        self.convert_owner = None  # Player who owns the converts
         self.plundered = False  # True if world has been plundered this turn
         self.planet_buster = False  # True if planet buster bomb has been dropped
         self.is_blackhole = False  # True if this world is a black hole (destroys ships)
@@ -61,7 +63,9 @@ class World:
                 "iships": self.iships,
                 "pships": self.pships,
                 "key": self.key,  # Homeworld marker
-                "population_type": self.population_type,  # "human", "robot", "apostle"
+                "population_type": self.population_type,  # "normal" or "robot"
+                "converts": self.converts,  # Number of converts (Apostle)
+                "convert_owner": self.convert_owner.name if self.convert_owner else None,
                 "plundered": self.plundered,  # Plundered status
                 "planet_buster": self.planet_buster,  # Planet buster bomb status
                 "is_blackhole": self.is_blackhole,  # Black hole status
@@ -88,6 +92,7 @@ class Fleet:
         self.cargo = 0
         self.moved = False
         self.is_ambushing = False
+        self.at_peace = False  # True if fleet won't capture worlds/keys
         self.has_pbb = False  # Planet Buster Bomb
         self.artifacts = []
         world.fleets.append(self)

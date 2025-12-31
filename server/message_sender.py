@@ -288,6 +288,51 @@ class MessageSender:
         except Exception as e:
             logger.error(f"Error sending message to {player.name}: {e}")
 
+    async def send_message_ws(self, websocket, message: dict):
+        """
+        Send a message directly to a websocket (for auth/lobby messages).
+
+        Args:
+            websocket: WebSocket connection
+            message: The message dict
+        """
+        try:
+            # Check if websocket is open
+            if hasattr(websocket, 'state'):
+                if websocket.state == State.OPEN:
+                    await websocket.send(json.dumps(message))
+            elif hasattr(websocket, 'open'):
+                if websocket.open:
+                    await websocket.send(json.dumps(message))
+        except Exception as e:
+            logger.error(f"Error sending message to websocket: {e}")
+
+    async def send_error_ws(self, websocket, message: str):
+        """
+        Send error message directly to websocket (for auth/lobby errors).
+
+        Args:
+            websocket: WebSocket connection
+            message: The error message
+        """
+        await self.send_message_ws(websocket, {
+            "type": "error",
+            "text": message
+        })
+
+    async def send_info_ws(self, websocket, message: str):
+        """
+        Send info message directly to websocket (for auth/lobby info).
+
+        Args:
+            websocket: WebSocket connection
+            message: The info message
+        """
+        await self.send_message_ws(websocket, {
+            "type": "info",
+            "text": message
+        })
+
 
 # Global message sender instance
 _message_sender = None

@@ -101,6 +101,19 @@ class BuildCommand(Command):
         if not valid:
             return valid, msg
 
+        # Special validation for robots
+        if self.target_type == "ROBOT":
+            # Only Berserker can build robots
+            if self.player.character_type != "Berserker":
+                return False, "Only Berserker can build robots"
+
+            # Can only build robots at worlds already populated by robots
+            if world.population_type != "robot":
+                return False, f"World {self.world_id} is not populated by robots. Cannot build robots here."
+
+            if world.population == 0:
+                return False, f"World {self.world_id} has no robot population. Cannot build robots."
+
         # If building on a fleet, validate fleet
         if self.target_type == "F" and self.target_id:
             valid, msg, fleet = validate_fleet_ownership(game_state, self.player, self.target_id)
@@ -1513,8 +1526,49 @@ class MigrateConvertsCommand(Command):
         return f"Migrate {self.amount} converts from W{self.source_world_id} to W{self.target_world_id}"
 
 
+class RobotAttackCommand(Command):
+    """Robot attack - Berserker converts ships to robots (F#R#)."""
+
+    def __init__(self, player, fleet_id: int, num_ships: int):
+        super().__init__(player)
+        self.fleet_id = fleet_id
+        self.num_ships = num_ships
+
+    def validate(self, game_state) -> tuple[bool, str]:
+        # Only Berserker can make robot attacks
+        valid, msg = validate_character_type(self.player, "Berserker")
+        if not valid:
+            return valid, msg
+
+        # Validate fleet ownership and has ships
+        valid, msg, fleet = validate_fleet_has_ships(game_state, self.player, self.fleet_id)
+        if not valid:
+            return valid, msg
+
+        # Must leave at least 1 ship on key
+        max_ships = fleet.ships - 1
+        if self.num_ships > max_ships:
+            return False, f"Fleet {self.fleet_id} only has {fleet.ships} ships (must leave at least 1 on key)"
+
+        if self.num_ships <= 0:
+            return False, "Robot attack requires at least 1 ship"
+
+        return True, ""
+
+    def to_order(self) -> dict:
+        return {
+            "type": "ROBOT_ATTACK",
+            "player": self.player,
+            "fleet_id": self.fleet_id,
+            "num_ships": self.num_ships
+        }
+
+    def get_description(self) -> str:
+        return f"F{self.fleet_id} robot attack: Convert {self.num_ships} ships to {self.num_ships * 2} robots"
+
+
 # Exclusive order types that cannot coexist for same fleet
-EXCLUSIVE_ORDER_TYPES = {"MOVE", "FIRE", "AMBUSH", "CONDITIONAL_FIRE"}
+EXCLUSIVE_ORDER_TYPES = {"MOVE", "FIRE", "AMBUSH", "CONDITIONAL_FIRE", "ROBOT_ATTACK"}
 
 
 def has_exclusive_order(player, fleet_id: int) -> bool:

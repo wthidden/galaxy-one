@@ -40,11 +40,22 @@ async def process_world_production(world):
 
     # Calculate population growth
     old_population = world.population
-    if world.population < world.limit:
+    population_growth = 0
+
+    # Robots don't grow (must be built)
+    if world.population_type == "robot":
+        population_growth = 0
+    # Normal population grows 10% per turn
+    elif world.population_type == "normal" and world.population < world.limit:
         growth = math.ceil(world.population * 0.10)
         world.population = min(world.population + growth, world.limit)
+        population_growth = world.population - old_population
 
-    population_growth = world.population - old_population
+        # If world is owned by Apostle, new growth becomes converts
+        if world.owner and world.owner.character_type == "Apostle":
+            world.population -= population_growth  # Remove from normal
+            world.converts += population_growth  # Add to converts
+            world.convert_owner = world.owner
 
     # Publish production event
     if production > 0 or population_growth > 0:
@@ -127,6 +138,22 @@ async def execute_build_order(order: dict):
             fleet.ships += actual_amount
         else:
             # Invalid target, refund metal and population allocation
+            world.metal += actual_amount
+            world.population_used_building -= actual_amount
+            return
+    elif target_type == "ROBOT":
+        # Build robots: 1 industry = 2 robots
+        # Only allowed at robot worlds
+        if world.population_type == "robot":
+            robots_built = actual_amount * 2
+            world.population += robots_built
+            await sender.send_event(
+                player,
+                f"W{world_id}: Built {robots_built} robots using {actual_amount} industry",
+                "production"
+            )
+        else:
+            # Refund if not a robot world (should have been caught by validation)
             world.metal += actual_amount
             world.population_used_building -= actual_amount
             return
@@ -602,21 +629,22 @@ def _score_berserker(player):
 def _score_apostle(player):
     """Apostle scoring: 5 per world, +5 for fully converted worlds, 1 per 10 converts, artifacts"""
     score = 0
+    game_state = get_game_state()
 
-    # Count converts
+    # Count converts across all worlds (not just owned)
     total_converts = 0
+    for world in game_state.worlds.values():
+        if world.convert_owner == player:
+            total_converts += world.converts
 
     for world in player.worlds:
         # 5 points per world controlled
         score += 5
 
         # Check if entirely populated by converts
-        if world.population_type == "apostle" and world.population > 0:
-            # Additional 5 points for fully converted world
+        if world.convert_owner == player and world.converts > 0 and world.population == 0:
+            # Additional 5 points for fully converted world (no normal population)
             score += 5
-            total_converts += world.population
-        elif world.population_type == "apostle":
-            total_converts += world.population
 
     # 1 point per 10 converts
     score += total_converts // 10

@@ -86,6 +86,12 @@ async def process_turn():
     # Execute orders in priority order
     logger.info(f"Executing {len(all_orders)} orders")
 
+    # 0. BEGINNING OF TURN: Process Apostle conversions
+    logger.info("Processing Apostle conversions")
+    from .mechanics.population import process_conversions
+    for world in game_state.worlds.values():
+        await process_conversions(world)
+
     # 0a. View artifact orders (informational, execute first)
     for order in orders_by_type.get("VIEW_ARTIFACT", []):
         await execute_view_artifact_order(order)
@@ -156,6 +162,12 @@ async def process_turn():
     # 8. Move orders (last because they can trigger ambushes)
     for order in orders_by_type.get("MOVE", []):
         await execute_move_order(order)
+
+    # 9. SPECIAL COMBAT: Robot attacks (after movement)
+    logger.info("Processing robot attacks")
+    from .mechanics.population import execute_robot_attack
+    for order in orders_by_type.get("ROBOT_ATTACK", []):
+        await execute_robot_attack(order)
 
     # Process world production
     logger.info("Processing production")

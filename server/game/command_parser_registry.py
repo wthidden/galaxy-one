@@ -22,7 +22,8 @@ from .commands import (
     UnloadConsumerGoodsCommand,
     ViewArtifactCommand,
     DeclareRelationCommand,
-    PlunderCommand
+    PlunderCommand,
+    RobotAttackCommand
 )
 
 
@@ -250,6 +251,14 @@ def parse_consumer_goods(player, command_text: str, match: re.Match) -> Command:
     fleet_id = int(match.group(1))
     amount = int(match.group(2)) if match.group(2) else None
     return UnloadConsumerGoodsCommand(player, fleet_id, amount)
+
+
+@_registry.register(r"^F(\d+)R(\d+)$")
+def parse_robot_attack(player, command_text: str, match: re.Match) -> Command:
+    """Parse: F5R3 - Fleet 5 convert 3 ships to 6 robots (Berserker only)"""
+    fleet_id = int(match.group(1))
+    num_ships = int(match.group(2))
+    return RobotAttackCommand(player, fleet_id, num_ships)
 
 
 @_registry.register(r"^V(\d+)F(\d+)$")
