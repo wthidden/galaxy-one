@@ -38,6 +38,11 @@ class LobbyScreen {
                     </div>
                 </div>
 
+                <!-- Admin Message Banner -->
+                <div id="lobby-admin-message" class="lobby-admin-message" style="display: none;">
+                    <div id="lobby-admin-message-content"></div>
+                </div>
+
                 <!-- Main content -->
                 <div class="lobby-content">
                     <!-- Left panel: Game lists -->
@@ -63,10 +68,26 @@ class LobbyScreen {
                         </div>
                     </div>
 
-                    <!-- Right panel: Game details -->
-                    <div class="lobby-right">
+                    <!-- Middle panel: Game details -->
+                    <div class="lobby-middle">
                         <div id="game-details-panel" class="game-details-panel">
                             <div class="empty-message">Select a game to view details</div>
+                        </div>
+                    </div>
+
+                    <!-- Right panel: Chat -->
+                    <div class="lobby-right">
+                        <div class="lobby-chat-panel">
+                            <div class="lobby-chat-header">
+                                <h3>Lobby Chat</h3>
+                            </div>
+                            <div id="lobby-chat-messages" class="lobby-chat-messages">
+                                <div class="chat-welcome">Welcome to the StarWeb lobby! Chat with other players here.</div>
+                            </div>
+                            <div class="lobby-chat-input-container">
+                                <input type="text" id="lobby-chat-input" class="lobby-chat-input" placeholder="Type a message..." maxlength="500">
+                                <button id="lobby-chat-send" class="btn btn-small">Send</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -102,9 +123,10 @@ class LobbyScreen {
                             <label for="map-size-input">Map Size</label>
                             <select id="map-size-input" class="form-input">
                                 <option value="50">Small (50 worlds)</option>
-                                <option value="100" selected>Medium (100 worlds)</option>
+                                <option value="100">Medium (100 worlds)</option>
                                 <option value="150">Large (150 worlds)</option>
                                 <option value="200">Huge (200 worlds)</option>
+                                <option value="255" selected>Classic (255 worlds)</option>
                             </select>
                         </div>
                         <div class="form-error" id="create-game-error"></div>
@@ -144,6 +166,17 @@ class LobbyScreen {
         document.getElementById('create-game-modal').addEventListener('click', (e) => {
             if (e.target.id === 'create-game-modal') {
                 this.hideCreateGameModal();
+            }
+        });
+
+        // Lobby chat
+        const chatInput = document.getElementById('lobby-chat-input');
+        const chatSendBtn = document.getElementById('lobby-chat-send');
+
+        chatSendBtn.addEventListener('click', () => this.sendChatMessage());
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendChatMessage();
             }
         });
     }
@@ -446,6 +479,83 @@ class LobbyScreen {
         this.requestGamesList();
         // Auto-enter the joined game
         this.enterGame(game);
+    }
+
+    /**
+     * Send lobby chat message
+     */
+    sendChatMessage() {
+        const input = document.getElementById('lobby-chat-input');
+        const text = input.value.trim();
+
+        if (!text) return;
+
+        const message = {
+            type: 'LOBBY_CHAT',
+            token: this.sessionData.token,
+            text: text
+        };
+
+        window.ws.send(JSON.stringify(message));
+        input.value = '';
+    }
+
+    /**
+     * Receive and display lobby chat message
+     */
+    receiveChatMessage(data) {
+        const messagesContainer = document.getElementById('lobby-chat-messages');
+        if (!messagesContainer) return;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message';
+
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const username = data.username || 'Unknown';
+        const text = data.text || '';
+
+        // Highlight own messages
+        if (username === this.sessionData.username) {
+            messageDiv.classList.add('chat-message-own');
+        }
+
+        messageDiv.innerHTML = `
+            <span class="chat-timestamp">[${timestamp}]</span>
+            <span class="chat-username">${username}:</span>
+            <span class="chat-text">${this.escapeHTML(text)}</span>
+        `;
+
+        messagesContainer.appendChild(messageDiv);
+
+        // Auto-scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // Limit to last 100 messages
+        while (messagesContainer.children.length > 100) {
+            messagesContainer.removeChild(messagesContainer.firstChild);
+        }
+    }
+
+    /**
+     * Show admin message in lobby
+     */
+    showAdminMessage(message) {
+        const panel = document.getElementById('lobby-admin-message');
+        const content = document.getElementById('lobby-admin-message-content');
+
+        if (panel && content && message) {
+            content.innerHTML = this.escapeHTML(message);
+            panel.style.display = 'block';
+        }
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHTML(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**
