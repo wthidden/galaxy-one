@@ -162,9 +162,52 @@ async def main():
         logger.info(f"Created {len(game_state.fleets)} neutral fleets")
         logger.info(f"Placed {len(game_state.artifacts)} artifacts")
 
+    # Load accounts and sessions
+    logger.info("Loading accounts and sessions...")
+    from .auth import get_auth_manager, get_session_manager
+    from .persistence.accounts import get_account_persistence
+
+    auth_manager = get_auth_manager()
+    session_manager = get_session_manager()
+    account_persistence = get_account_persistence()
+
+    # Load saved accounts
+    accounts_data = account_persistence.load_accounts()
+    auth_manager.load_accounts(accounts_data)
+
+    # Load saved sessions
+    sessions_data = account_persistence.load_sessions()
+    session_manager.load_sessions(sessions_data)
+
+    # Cleanup expired sessions
+    session_manager.cleanup_expired_sessions()
+
     # Register message handlers
     logger.info("Registering message handlers...")
     message_router = get_message_router()
+
+    # Auth handlers (websocket-level, pre-auth)
+    from .auth.auth_handlers import handle_signup, handle_login, handle_logout, handle_validate_session
+    message_router.register_websocket_handler("SIGNUP", handle_signup)
+    message_router.register_websocket_handler("LOGIN", handle_login)
+    message_router.register_websocket_handler("LOGOUT", handle_logout)
+    message_router.register_websocket_handler("VALIDATE_SESSION", handle_validate_session)
+
+    # Lobby handlers (websocket-level, authenticated)
+    from .lobby import (
+        handle_list_games,
+        handle_create_game,
+        handle_join_game,
+        handle_leave_game,
+        handle_get_game_info
+    )
+    message_router.register_websocket_handler("LIST_GAMES", handle_list_games)
+    message_router.register_websocket_handler("CREATE_GAME", handle_create_game)
+    message_router.register_websocket_handler("JOIN_GAME", handle_join_game)
+    message_router.register_websocket_handler("LEAVE_GAME", handle_leave_game)
+    message_router.register_websocket_handler("GET_GAME_INFO", handle_get_game_info)
+
+    # Game handlers (player-level, require game membership)
     message_router.register_handler("command", handle_command_message)
 
     # Register bug report handler
@@ -222,6 +265,18 @@ async def main():
     # Save final game state
     logger.info("Saving final game state...")
     persistence.save_state(game_state)
+
+    # Save accounts and sessions
+    logger.info("Saving accounts and sessions...")
+    from .auth import get_auth_manager, get_session_manager
+    from .persistence.accounts import get_account_persistence
+
+    auth_manager = get_auth_manager()
+    session_manager = get_session_manager()
+    account_persistence = get_account_persistence()
+
+    account_persistence.save_accounts(auth_manager.get_all_accounts())
+    account_persistence.save_sessions(session_manager.get_all_sessions())
 
     logger.info("Shutdown complete")
     logger.info("="*60)

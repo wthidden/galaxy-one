@@ -8,8 +8,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Login Overlay -->
-    <div id="login-overlay">
+    <!-- App Container (for login/lobby screens) -->
+    <div id="app-container"></div>
+
+    <!-- Login Overlay (legacy, will be replaced) -->
+    <div id="login-overlay" style="display: none;">
         <div id="login-box">
             <h1>StarWeb</h1>
             <p>Enter your name and choose your path:</p>
@@ -298,7 +301,14 @@
     <script src="client/commands/CommandParser.js"></script>
     <script src="client/ui/CommandInput.js"></script>
 
-    <!-- Main Entry Point -->
+    <!-- Auth & Lobby Screens -->
+    <script src="client/screens/LoginScreen.js"></script>
+    <script src="client/screens/LobbyScreen.js"></script>
+
+    <!-- App Controller (handles screen routing) -->
+    <script src="client/app.js"></script>
+
+    <!-- Main Entry Point (game screen) -->
     <script src="client/main.js"></script>
 </body>
 </html>

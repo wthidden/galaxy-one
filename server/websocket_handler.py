@@ -33,28 +33,21 @@ class WebSocketHandler:
         player = None
 
         try:
-            # Register connection
-            player = await self.connection_manager.register(websocket)
-
-            # Send welcome message
-            await self.message_sender.send_welcome(player)
-
-            # Send current admin message if it exists
-            from .admin_message import get_admin_watcher
-            admin_watcher = get_admin_watcher()
-            current_message = admin_watcher.get_current_message()
-            if current_message:
-                logger.info(f"Sending initial admin message to {player.name}")
-                await self.message_sender.send_admin_message(player, current_message)
-            else:
-                logger.debug(f"No admin message to send to {player.name}")
+            # NOTE: We don't automatically register a player anymore
+            # The client must authenticate first via SIGNUP/LOGIN
+            # Then they can join/create games
+            logger.info(f"New WebSocket connection from {websocket.remote_address}")
 
             # Main message loop
             async for raw_message in websocket:
-                await self.message_router.route(player, raw_message)
+                # Get current player (may be None for pre-auth messages)
+                player = self.connection_manager.get_player(websocket)
+
+                # Route message (router handles both authed and non-authed)
+                await self.message_router.route(player, websocket, raw_message)
 
         except websockets.exceptions.ConnectionClosed:
-            logger.info(f"Connection closed for {player.name if player else 'unknown'}")
+            logger.info(f"Connection closed for {player.name if player else 'unauthenticated user'}")
 
         except Exception as e:
             logger.error(f"Error handling connection: {e}", exc_info=True)
@@ -62,7 +55,9 @@ class WebSocketHandler:
         finally:
             # Cleanup
             if websocket:
-                await self.connection_manager.unregister(websocket)
+                player = self.connection_manager.get_player(websocket)
+                if player:
+                    await self.connection_manager.unregister(websocket)
 
     async def broadcast_to_all(self, message: dict, exclude_players: set = None):
         """
