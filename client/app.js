@@ -133,6 +133,11 @@ class StarWebApp {
                     this.handleGameInfo(data);
                     break;
 
+                // Lobby chat
+                case 'LOBBY_CHAT':
+                    this.handleLobbyChat(data);
+                    break;
+
                 // Game messages - forward to game screen if active
                 case 'update':
                 case 'delta':
@@ -252,6 +257,15 @@ class StarWebApp {
     handleGameInfo(data) {
         if (this.lobbyScreen) {
             this.lobbyScreen.updateGameDetails(data.game, data.scoreboard);
+        }
+    }
+
+    /**
+     * Handle lobby chat message
+     */
+    handleLobbyChat(data) {
+        if (this.lobbyScreen) {
+            this.lobbyScreen.receiveChatMessage(data);
         }
     }
 

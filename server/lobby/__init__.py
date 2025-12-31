@@ -9,6 +9,7 @@ from .lobby_handlers import (
     handle_get_game_info,
     handle_enter_game
 )
+from .lobby_chat import handle_lobby_chat
 
 __all__ = [
     'handle_list_games',
@@ -16,5 +17,6 @@ __all__ = [
     'handle_join_game',
     'handle_leave_game',
     'handle_get_game_info',
-    'handle_enter_game'
+    'handle_enter_game',
+    'handle_lobby_chat'
 ]
