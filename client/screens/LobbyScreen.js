@@ -92,51 +92,6 @@ class LobbyScreen {
                     </aside>
                 </main>
             </div>
-
-            <!-- Create Game Modal -->
-            <div id="create-game-modal" class="modal" style="display: none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Create New Game</h2>
-                        <button class="modal-close" id="modal-close-btn">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="game-name-input">Game Name</label>
-                            <input type="text" id="game-name-input" class="form-input" placeholder="My Epic Game">
-                        </div>
-                        <div class="form-group">
-                            <label for="character-type-select">Your Character Type</label>
-                            <select id="character-type-select" class="form-input">
-                                ${this.CHARACTER_TYPES.map(type => `<option value="${type}">${type}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="character-name-input">Your Character Name</label>
-                            <input type="text" id="character-name-input" class="form-input" placeholder="${this.sessionData.username}">
-                        </div>
-                        <div class="form-group">
-                            <label for="max-players-input">Max Players</label>
-                            <input type="number" id="max-players-input" class="form-input" value="6" min="2" max="12">
-                        </div>
-                        <div class="form-group">
-                            <label for="map-size-input">Map Size</label>
-                            <select id="map-size-input" class="form-input">
-                                <option value="50">Small (50 worlds)</option>
-                                <option value="100">Medium (100 worlds)</option>
-                                <option value="150">Large (150 worlds)</option>
-                                <option value="200">Huge (200 worlds)</option>
-                                <option value="255" selected>Classic (255 worlds)</option>
-                            </select>
-                        </div>
-                        <div class="form-error" id="create-game-error"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="cancel-create-btn" class="btn">Cancel</button>
-                        <button id="confirm-create-btn" class="btn btn-primary">Create Game</button>
-                    </div>
-                </div>
-            </div>
         `;
 
         parentElement.appendChild(this.container);
@@ -156,18 +111,6 @@ class LobbyScreen {
 
         // Refresh games
         document.getElementById('refresh-games-btn').addEventListener('click', () => this.requestGamesList());
-
-        // Modal controls
-        document.getElementById('modal-close-btn').addEventListener('click', () => this.hideCreateGameModal());
-        document.getElementById('cancel-create-btn').addEventListener('click', () => this.hideCreateGameModal());
-        document.getElementById('confirm-create-btn').addEventListener('click', () => this.handleCreateGame());
-
-        // Close modal on outside click
-        document.getElementById('create-game-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'create-game-modal') {
-                this.hideCreateGameModal();
-            }
-        });
 
         // Lobby chat
         const chatInput = document.getElementById('lobby-chat-input');
@@ -378,16 +321,60 @@ class LobbyScreen {
      * Show create game modal
      */
     showCreateGameModal() {
-        document.getElementById('create-game-modal').style.display = 'flex';
-        document.getElementById('game-name-input').focus();
-        document.getElementById('create-game-error').textContent = '';
-    }
+        if (!window.modalManager) {
+            console.error('ModalManager not available');
+            return;
+        }
 
-    /**
-     * Hide create game modal
-     */
-    hideCreateGameModal() {
-        document.getElementById('create-game-modal').style.display = 'none';
+        window.modalManager.show({
+            title: 'Create New Game',
+            size: 'medium',
+            content: (container) => {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label for="game-name-input">Game Name</label>
+                        <input type="text" id="game-name-input" class="form-input" placeholder="My Epic Game" autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="character-type-select">Your Character Type</label>
+                        <select id="character-type-select" class="form-input">
+                            ${this.CHARACTER_TYPES.map(type => `<option value="${type}">${type}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="character-name-input">Your Character Name</label>
+                        <input type="text" id="character-name-input" class="form-input" placeholder="${this.sessionData.username}" value="${this.sessionData.username}">
+                    </div>
+                    <div class="form-group">
+                        <label for="max-players-input">Max Players</label>
+                        <input type="number" id="max-players-input" class="form-input" value="6" min="2" max="12">
+                    </div>
+                    <div class="form-group">
+                        <label for="map-size-input">Map Size</label>
+                        <select id="map-size-input" class="form-input">
+                            <option value="50">Small (50 worlds)</option>
+                            <option value="100">Medium (100 worlds)</option>
+                            <option value="150">Large (150 worlds)</option>
+                            <option value="200">Huge (200 worlds)</option>
+                            <option value="255" selected>Classic (255 worlds)</option>
+                        </select>
+                    </div>
+                `;
+            },
+            buttons: [
+                {
+                    text: 'Cancel',
+                    className: 'btn-ghost'
+                },
+                {
+                    text: 'Create Game',
+                    className: 'btn-primary',
+                    onClick: () => {
+                        return this.handleCreateGame();
+                    }
+                }
+            ]
+        });
     }
 
     /**
@@ -401,8 +388,10 @@ class LobbyScreen {
         const mapSize = parseInt(document.getElementById('map-size-input').value);
 
         if (!gameName) {
-            document.getElementById('create-game-error').textContent = 'Please enter a game name';
-            return;
+            if (window.toastManager) {
+                window.toastManager.error('Please enter a game name');
+            }
+            return false; // Don't close modal
         }
 
         // Send CREATE_GAME message
@@ -417,7 +406,7 @@ class LobbyScreen {
         };
 
         window.ws.send(JSON.stringify(message));
-        this.hideCreateGameModal();
+        return true; // Close modal
     }
 
     /**
