@@ -19,7 +19,16 @@ class WebSocketClient {
 
         this.isConnecting = true;
         const host = window.location.hostname;
-        this.socket = new WebSocket(`ws://${host}:8765`);
+
+        // Auto-detect protocol: use wss:// for HTTPS, ws:// for HTTP
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // In HTTPS mode, connect via nginx proxy; in HTTP mode, use direct port
+        const wsUrl = window.location.protocol === 'https:'
+            ? `${protocol}//${host}/ws`
+            : `${protocol}//${host}:8765`;
+
+        console.log(`Connecting to WebSocket: ${wsUrl}`);
+        this.socket = new WebSocket(wsUrl);
 
         this.socket.onopen = () => {
             this.isConnecting = false;
