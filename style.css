@@ -2173,17 +2173,18 @@ canvas {
     align-items: flex-start;
     gap: var(--spacing-md);
     padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--gradient-card);
+    background: linear-gradient(145deg, rgba(70, 70, 70, 0.95) 0%, rgba(50, 50, 50, 0.95) 100%);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-lg), 0 0 20px rgba(0, 0, 0, 0.5);
     pointer-events: auto;
     min-width: 300px;
     opacity: 0;
     transform: translateX(120%);
     transition: all var(--transition-base);
+    color: #fff;
 }
 
 .toast-enter {
@@ -2225,12 +2226,14 @@ canvas {
 
 .toast-content {
     flex: 1;
-    color: #eee;
+    color: #fff;
 }
 
 .toast-message {
     font-size: var(--font-size-md);
     line-height: 1.4;
+    color: #fff;
+    font-weight: 500;
 }
 
 .toast-close {
