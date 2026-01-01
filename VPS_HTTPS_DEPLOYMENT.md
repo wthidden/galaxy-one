@@ -9,7 +9,9 @@ Since you've updated the code locally to support HTTPS, you now need to deploy t
 ### 1. Upload Updated Files to VPS
 
 **Files that changed:**
+- `client/app.js` - Updated to use wss:// and nginx proxy (CRITICAL)
 - `client/network/WebSocketClient.js` - Updated to use wss:// and nginx proxy
+- `game.js` - Updated to use wss:// and nginx proxy (legacy)
 - `docker-compose.yml` - Port 8765 no longer exposed externally
 - `nginx.conf` - HTTPS server block enabled
 - `generate-self-signed-cert.sh` - Certificate generation script
@@ -31,7 +33,9 @@ git pull
 **Option B: Using SCP**
 ```bash
 # From your local machine
+scp client/app.js user@vps:/path/to/starweb/client/
 scp client/network/WebSocketClient.js user@vps:/path/to/starweb/client/network/
+scp game.js user@vps:/path/to/starweb/
 scp docker-compose.yml user@vps:/path/to/starweb/
 scp nginx.conf user@vps:/path/to/starweb/
 scp generate-self-signed-cert.sh user@vps:/path/to/starweb/
@@ -112,8 +116,12 @@ curl -k -I https://localhost
 
 **Check browser console (F12):**
 
-**If you see:** `Connecting to WebSocket: ws://YOUR_IP:8765`
-- **Problem:** Old client code is still running
+**If you see:** `Connecting to ws://YOUR_IP:8765...`
+- **Problem:** Old client code (HTTP mode)
+- **Solution:** Access via HTTPS, not HTTP
+
+**If you see:** `Connecting to wss://YOUR_IP:8765...`
+- **Problem:** Old client code is still running (hardcoded port)
 - **Solution:** You didn't rebuild containers with new code
   ```bash
   docker-compose down
@@ -121,9 +129,9 @@ curl -k -I https://localhost
   docker-compose up -d
   ```
 
-**If you see:** `Connecting to WebSocket: wss://YOUR_IP/ws`
-- **Good!** Client is using the right URL
-- Check if nginx can reach backend:
+**If you see:** `Connecting to wss://YOUR_IP/ws...`
+- **Good!** Client is using the correct URL
+- If still failing, check if nginx can reach backend:
   ```bash
   docker-compose exec nginx nc -zv starweb-server 8765
   # Should show: starweb-server (172.x.x.x:8765) open

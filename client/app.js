@@ -52,7 +52,10 @@ class StarWebApp {
     async connectWebSocket() {
         return new Promise((resolve, reject) => {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.hostname}:8765`;
+            // In HTTPS mode, connect via nginx proxy; in HTTP mode, use direct port
+            const wsUrl = window.location.protocol === 'https:'
+                ? `${protocol}//${window.location.hostname}/ws`
+                : `${protocol}//${window.location.hostname}:8765`;
 
             console.log(`Connecting to ${wsUrl}...`);
 
