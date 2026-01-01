@@ -30,67 +30,67 @@ class LobbyScreen {
         this.container.innerHTML = `
             <div class="lobby-container">
                 <!-- Header -->
-                <div class="lobby-header">
+                <header class="lobby-header" role="banner">
                     <h1>⭐ STARWEB LOBBY ⭐</h1>
                     <div class="user-info">
                         <span>Player: <strong>${this.sessionData.username}</strong></span>
-                        <button id="logout-btn" class="btn btn-small">Logout</button>
+                        <button id="logout-btn" class="btn btn-small" aria-label="Logout from game">Logout</button>
                     </div>
-                </div>
+                </header>
 
                 <!-- Admin Message Banner -->
-                <div id="lobby-admin-message" class="lobby-admin-message" style="display: none;">
+                <div id="lobby-admin-message" class="lobby-admin-message" role="alert" aria-live="assertive" style="display: none;">
                     <div id="lobby-admin-message-content"></div>
                 </div>
 
                 <!-- Main content -->
-                <div class="lobby-content">
+                <main class="lobby-content" role="main">
                     <!-- Left panel: Game lists -->
-                    <div class="lobby-left">
-                        <div class="game-list-section">
+                    <aside class="lobby-left" role="complementary" aria-label="Game lists">
+                        <section class="game-list-section" aria-labelledby="my-games-heading">
                             <div class="section-header">
-                                <h3>My Games</h3>
-                                <button id="create-game-btn" class="btn btn-primary btn-small">+ Create Game</button>
+                                <h3 id="my-games-heading">My Games</h3>
+                                <button id="create-game-btn" class="btn btn-primary btn-small" aria-label="Create a new game">+ Create Game</button>
                             </div>
-                            <div id="my-games-list" class="game-list">
-                                <div class="loading">Loading games...</div>
+                            <div id="my-games-list" class="game-list" role="list" aria-live="polite" aria-busy="true">
+                                ${this.renderLoadingSkeleton(3)}
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="game-list-section">
+                        <section class="game-list-section" aria-labelledby="available-games-heading">
                             <div class="section-header">
-                                <h3>Available Games</h3>
-                                <button id="refresh-games-btn" class="btn btn-small">🔄 Refresh</button>
+                                <h3 id="available-games-heading">Available Games</h3>
+                                <button id="refresh-games-btn" class="btn btn-small" aria-label="Refresh games list">🔄 Refresh</button>
                             </div>
-                            <div id="available-games-list" class="game-list">
-                                <div class="loading">Loading...</div>
+                            <div id="available-games-list" class="game-list" role="list" aria-live="polite" aria-busy="true">
+                                ${this.renderLoadingSkeleton(3)}
                             </div>
-                        </div>
-                    </div>
+                        </section>
+                    </aside>
 
                     <!-- Middle panel: Game details -->
-                    <div class="lobby-middle">
+                    <section class="lobby-middle" role="region" aria-labelledby="game-details-heading">
                         <div id="game-details-panel" class="game-details-panel">
                             <div class="empty-message">Select a game to view details</div>
                         </div>
-                    </div>
+                    </section>
 
                     <!-- Right panel: Chat -->
-                    <div class="lobby-right">
+                    <aside class="lobby-right" role="complementary" aria-labelledby="lobby-chat-heading">
                         <div class="lobby-chat-panel">
                             <div class="lobby-chat-header">
-                                <h3>Lobby Chat</h3>
+                                <h3 id="lobby-chat-heading">Lobby Chat</h3>
                             </div>
-                            <div id="lobby-chat-messages" class="lobby-chat-messages">
+                            <div id="lobby-chat-messages" class="lobby-chat-messages" role="log" aria-live="polite" aria-label="Chat messages">
                                 <div class="chat-welcome">Welcome to the StarWeb lobby! Chat with other players here.</div>
                             </div>
                             <div class="lobby-chat-input-container">
-                                <input type="text" id="lobby-chat-input" class="lobby-chat-input" placeholder="Type a message..." maxlength="500">
-                                <button id="lobby-chat-send" class="btn btn-small">Send</button>
+                                <input type="text" id="lobby-chat-input" class="lobby-chat-input" placeholder="Type a message... (Press / to focus)" maxlength="500" aria-label="Chat message input">
+                                <button id="lobby-chat-send" class="btn btn-small" aria-label="Send chat message">Send</button>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </aside>
+                </main>
             </div>
 
             <!-- Create Game Modal -->
@@ -201,6 +201,8 @@ class LobbyScreen {
 
         // Update my games
         const myGamesList = document.getElementById('my-games-list');
+        myGamesList.setAttribute('aria-busy', 'false');
+
         if (myGames.length === 0) {
             myGamesList.innerHTML = '<div class="empty-message">No games yet. Create one!</div>';
         } else {
@@ -220,6 +222,8 @@ class LobbyScreen {
 
         // Update available games
         const availableGamesList = document.getElementById('available-games-list');
+        availableGamesList.setAttribute('aria-busy', 'false');
+
         if (availableGames.length === 0) {
             availableGamesList.innerHTML = '<div class="empty-message">No available games</div>';
         } else {
@@ -236,6 +240,11 @@ class LobbyScreen {
                 });
             });
         }
+
+        // Update keyboard navigation
+        if (window.keyboardNav) {
+            window.keyboardNav.updateListNavigation();
+        }
     }
 
     /**
@@ -248,7 +257,7 @@ class LobbyScreen {
             : `<button id="join-game-${game.id}" class="btn btn-small">Join →</button>`;
 
         return `
-            <div class="game-card" id="game-${game.id}">
+            <div class="game-card" id="game-${game.id}" role="listitem">
                 <div class="game-card-header">
                     <h4>${game.name}</h4>
                     <span class="game-status ${statusClass}">${game.status}</span>
@@ -262,6 +271,19 @@ class LobbyScreen {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Render loading skeleton for game cards
+     */
+    renderLoadingSkeleton(count = 3) {
+        return Array.from({ length: count }, (_, i) => `
+            <div class="skeleton-card" role="status" aria-label="Loading game ${i + 1}">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text"></div>
+            </div>
+        `).join('');
     }
 
     /**
@@ -402,22 +424,47 @@ class LobbyScreen {
      * Show join game prompt
      */
     showJoinGamePrompt(game) {
-        const characterType = prompt('Choose your character type:\n1. Empire Builder\n2. Merchant\n3. Pirate\n4. Artifact Collector\n5. Berserker\n6. Apostle\n\nEnter 1-6:');
-        if (!characterType) return;
+        if (!window.modalManager) {
+            console.error('ModalManager not available');
+            return;
+        }
 
-        const typeMap = {
-            '1': 'Empire Builder',
-            '2': 'Merchant',
-            '3': 'Pirate',
-            '4': 'Artifact Collector',
-            '5': 'Berserker',
-            '6': 'Apostle'
-        };
-
-        const selectedType = typeMap[characterType] || 'Empire Builder';
-        const characterName = prompt('Enter your character name:', this.sessionData.username) || this.sessionData.username;
-
-        this.joinGame(game.id, selectedType, characterName);
+        window.modalManager.show({
+            title: `Join ${game.name}`,
+            size: 'medium',
+            content: (container) => {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label for="join-character-type">Character Type</label>
+                        <select id="join-character-type" class="form-input">
+                            ${this.CHARACTER_TYPES.map(type => `<option value="${type}">${type}</option>`).join('')}
+                        </select>
+                        <div class="character-type-description" style="margin-top: 8px; font-size: 0.9em; color: rgba(255,255,255,0.7);">
+                            Choose your playstyle for this game
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="join-character-name">Character Name</label>
+                        <input type="text" id="join-character-name" class="form-input" value="${this.sessionData.username}" placeholder="Enter character name">
+                    </div>
+                `;
+            },
+            buttons: [
+                {
+                    text: 'Cancel',
+                    className: 'btn-ghost'
+                },
+                {
+                    text: 'Join Game',
+                    className: 'btn-primary',
+                    onClick: () => {
+                        const characterType = document.getElementById('join-character-type').value;
+                        const characterName = document.getElementById('join-character-name').value.trim() || this.sessionData.username;
+                        this.joinGame(game.id, characterType, characterName);
+                    }
+                }
+            ]
+        });
     }
 
     /**
@@ -447,8 +494,20 @@ class LobbyScreen {
     /**
      * Handle logout
      */
-    handleLogout() {
-        if (confirm('Are you sure you want to logout?')) {
+    async handleLogout() {
+        if (!window.modalManager) {
+            console.error('ModalManager not available');
+            return;
+        }
+
+        const confirmed = await window.modalManager.confirm(
+            'Logout',
+            'Are you sure you want to logout?',
+            'Logout',
+            'Cancel'
+        );
+
+        if (confirmed) {
             const message = {
                 type: 'LOGOUT',
                 token: this.sessionData.token
@@ -467,6 +526,9 @@ class LobbyScreen {
      * Handle game created
      */
     handleGameCreated(game) {
+        if (window.toastManager) {
+            window.toastManager.success(`Game "${game.name}" created successfully!`);
+        }
         this.requestGamesList();
         // Auto-enter the created game
         this.enterGame(game);
@@ -476,6 +538,9 @@ class LobbyScreen {
      * Handle game joined
      */
     handleGameJoined(game) {
+        if (window.toastManager) {
+            window.toastManager.success(`Joined "${game.name}" successfully!`);
+        }
         this.requestGamesList();
         // Auto-enter the joined game
         this.enterGame(game);
@@ -498,6 +563,7 @@ class LobbyScreen {
 
         window.ws.send(JSON.stringify(message));
         input.value = '';
+        input.focus();
     }
 
     /**
@@ -546,6 +612,18 @@ class LobbyScreen {
         if (panel && content && message) {
             content.innerHTML = this.escapeHTML(message);
             panel.style.display = 'block';
+        }
+    }
+
+    /**
+     * Handle error messages
+     */
+    handleError(errorMessage, details = '') {
+        if (window.toastManager) {
+            const message = details ? `${errorMessage}: ${details}` : errorMessage;
+            window.toastManager.error(message, 5000);
+        } else {
+            console.error(errorMessage, details);
         }
     }
 
