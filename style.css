@@ -2258,7 +2258,7 @@ canvas {
    Modern Modal System
    ============================================ */
 
-.modal {
+.sw-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -2273,12 +2273,12 @@ canvas {
     pointer-events: none;
 }
 
-.modal-open {
+.sw-modal-open {
     opacity: 1;
     pointer-events: auto;
 }
 
-.modal-closing {
+.sw-modal-closing {
     opacity: 0;
 }
 
@@ -2300,11 +2300,11 @@ canvas {
     transition: transform var(--transition-slow);
 }
 
-.modal-open .modal-dialog {
+.sw-modal-open .modal-dialog {
     transform: scale(1) translateY(0);
 }
 
-.modal-closing .modal-dialog {
+.sw-modal-closing .modal-dialog {
     transform: scale(0.95) translateY(10px);
 }
 
@@ -2319,9 +2319,9 @@ canvas {
     flex-direction: column;
 }
 
-.modal-small .modal-content-wrapper { max-width: 400px; }
-.modal-medium .modal-content-wrapper { max-width: 600px; }
-.modal-large .modal-content-wrapper { max-width: 800px; }
+.sw-modal-small .modal-content-wrapper { max-width: 400px; }
+.sw-modal-medium .modal-content-wrapper { max-width: 600px; }
+.sw-modal-large .modal-content-wrapper { max-width: 800px; }
 
 .modal-header {
     display: flex;

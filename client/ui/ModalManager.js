@@ -31,7 +31,7 @@ class ModalManager {
         this.previousFocus = document.activeElement;
 
         const modal = document.createElement('div');
-        modal.className = `modal modal-${size} ${className}`;
+        modal.className = `sw-modal sw-modal-${size} ${className}`;
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         modal.setAttribute('aria-labelledby', 'modal-title');
@@ -108,7 +108,7 @@ class ModalManager {
 
         // Animate in
         requestAnimationFrame(() => {
-            modal.classList.add('modal-open');
+            modal.classList.add('sw-modal-open');
         });
 
         // Focus first focusable element
@@ -122,8 +122,8 @@ class ModalManager {
         if (!this.activeModal) return;
 
         const modal = this.activeModal;
-        modal.classList.remove('modal-open');
-        modal.classList.add('modal-closing');
+        modal.classList.remove('sw-modal-open');
+        modal.classList.add('sw-modal-closing');
 
         if (this.escapeHandler) {
             document.removeEventListener('keydown', this.escapeHandler);
