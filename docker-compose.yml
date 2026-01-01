@@ -1,8 +1,10 @@
 services:
   starweb-server:
     build: .
-    ports:
-      - "8765:8765"
+    # Port 8765 is not exposed externally - only accessible via nginx proxy
+    # For local development without HTTPS, uncomment the line below:
+    # ports:
+    #   - "8765:8765"
     environment:
       - PORT=8765
       - TURN_DURATION=180
