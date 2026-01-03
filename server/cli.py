@@ -17,6 +17,8 @@ import argparse
 import sys
 import os
 import shutil
+import yaml
+import getpass
 from pathlib import Path
 from datetime import datetime
 
@@ -330,6 +332,371 @@ def view_bug_reports(args):
     return 0
 
 
+def bootstrap_admin(args):
+    """Bootstrap first admin account and update config."""
+    from server.auth.auth_manager import get_auth_manager
+    from server.persistence.accounts import get_account_persistence
+
+    print("=" * 60)
+    print("StarWeb - Bootstrap Admin Account")
+    print("=" * 60)
+
+    # Get username and password
+    username = args.username or input("Admin username: ")
+    password = args.password
+    if not password:
+        password = getpass.getpass("Admin password: ")
+        password_confirm = getpass.getpass("Confirm password: ")
+        if password != password_confirm:
+            print("✗ Passwords do not match")
+            return 1
+
+    email = args.email or input("Admin email (optional): ") or None
+
+    # Create account
+    auth_manager = get_auth_manager()
+    persistence = get_account_persistence()
+
+    # Load existing accounts
+    try:
+        accounts_data = persistence.load_accounts()
+        auth_manager.load_accounts(accounts_data)
+    except:
+        # No existing accounts, that's fine
+        pass
+
+    success, message, session = auth_manager.signup(username, password, email)
+
+    if not success:
+        print(f"✗ Failed to create admin account: {message}")
+        return 1
+
+    print(f"✓ Admin account created: {username}")
+
+    # Save accounts
+    persistence.save_accounts(auth_manager.get_all_accounts())
+    print(f"✓ Saved account data")
+
+    # Update config file
+    config_file = Path("game_config.yaml")
+    try:
+        with open(config_file, 'r') as f:
+            config = yaml.safe_load(f)
+
+        if 'admin' not in config:
+            config['admin'] = {}
+        if 'users' not in config['admin']:
+            config['admin']['users'] = []
+
+        if username not in config['admin']['users']:
+            config['admin']['users'].append(username)
+
+        config['admin']['enabled'] = True
+        config['admin']['audit_log'] = 'data/admin_audit.jsonl'
+
+        with open(config_file, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False)
+
+        print(f"✓ Updated {config_file}")
+    except Exception as e:
+        print(f"✗ Failed to update config: {e}")
+        return 1
+
+    print()
+    print("=" * 60)
+    print("Bootstrap complete! Admin account ready.")
+    print("=" * 60)
+    return 0
+
+
+def admin_list_users(args):
+    """List all user accounts."""
+    from server.auth.auth_manager import get_auth_manager
+    from server.persistence.accounts import get_account_persistence
+
+    auth_manager = get_auth_manager()
+    persistence = get_account_persistence()
+
+    # Load accounts
+    try:
+        accounts_data = persistence.load_accounts()
+        auth_manager.load_accounts(accounts_data)
+    except Exception as e:
+        print(f"✗ Failed to load accounts: {e}")
+        return 1
+
+    accounts = auth_manager.get_all_accounts()
+
+    print("=" * 80)
+    print(f"User Accounts ({len(accounts)} total)")
+    print("=" * 80)
+
+    for username, account in sorted(accounts.items()):
+        admin_flag = "[ADMIN]" if account.is_admin() else ""
+        print(f"{username:20s} {admin_flag:8s} ID: {account.id}")
+        print(f"  Email: {account.email or 'N/A'}")
+        print(f"  Created: {account.created_at}")
+        print(f"  Last Login: {account.last_login or 'Never'}")
+        print()
+
+    return 0
+
+
+def admin_create_user(args):
+    """Create a new user account."""
+    from server.auth.auth_manager import get_auth_manager
+    from server.persistence.accounts import get_account_persistence
+
+    auth_manager = get_auth_manager()
+    persistence = get_account_persistence()
+
+    # Load accounts
+    try:
+        accounts_data = persistence.load_accounts()
+        auth_manager.load_accounts(accounts_data)
+    except:
+        pass
+
+    # Create account
+    success, message, session = auth_manager.signup(args.username, args.password, args.email)
+
+    if not success:
+        print(f"✗ Failed to create user: {message}")
+        return 1
+
+    print(f"✓ User '{args.username}' created successfully")
+
+    # Save accounts
+    persistence.save_accounts(auth_manager.get_all_accounts())
+    print(f"✓ Saved account data")
+
+    return 0
+
+
+def admin_delete_user(args):
+    """Delete a user account."""
+    from server.auth.auth_manager import get_auth_manager
+    from server.persistence.accounts import get_account_persistence
+
+    auth_manager = get_auth_manager()
+    persistence = get_account_persistence()
+
+    # Load accounts
+    try:
+        accounts_data = persistence.load_accounts()
+        auth_manager.load_accounts(accounts_data)
+    except Exception as e:
+        print(f"✗ Failed to load accounts: {e}")
+        return 1
+
+    # Confirm deletion
+    if not args.force:
+        response = input(f"Delete user '{args.username}'? (yes/no): ")
+        if response.lower() not in ['yes', 'y']:
+            print("Cancelled.")
+            return 0
+
+    # Delete account
+    success, message = auth_manager.delete_account(args.username)
+
+    if not success:
+        print(f"✗ {message}")
+        return 1
+
+    print(f"✓ {message}")
+
+    # Save accounts
+    persistence.save_accounts(auth_manager.get_all_accounts())
+    print(f"✓ Saved account data")
+
+    return 0
+
+
+def admin_reset_password(args):
+    """Reset user password."""
+    from server.auth.auth_manager import get_auth_manager
+    from server.persistence.accounts import get_account_persistence
+
+    auth_manager = get_auth_manager()
+    persistence = get_account_persistence()
+
+    # Load accounts
+    try:
+        accounts_data = persistence.load_accounts()
+        auth_manager.load_accounts(accounts_data)
+    except Exception as e:
+        print(f"✗ Failed to load accounts: {e}")
+        return 1
+
+    # Get password
+    password = args.password
+    if not password:
+        password = getpass.getpass("New password: ")
+        password_confirm = getpass.getpass("Confirm password: ")
+        if password != password_confirm:
+            print("✗ Passwords do not match")
+            return 1
+
+    # Reset password
+    success, message = auth_manager.reset_password(args.username, password)
+
+    if not success:
+        print(f"✗ {message}")
+        return 1
+
+    print(f"✓ {message}")
+
+    # Save accounts
+    persistence.save_accounts(auth_manager.get_all_accounts())
+    print(f"✓ Saved account data")
+
+    return 0
+
+
+def admin_change_email(args):
+    """Change user email."""
+    from server.auth.auth_manager import get_auth_manager
+    from server.persistence.accounts import get_account_persistence
+
+    auth_manager = get_auth_manager()
+    persistence = get_account_persistence()
+
+    # Load accounts
+    try:
+        accounts_data = persistence.load_accounts()
+        auth_manager.load_accounts(accounts_data)
+    except Exception as e:
+        print(f"✗ Failed to load accounts: {e}")
+        return 1
+
+    # Change email
+    success, message = auth_manager.change_email(args.username, args.email)
+
+    if not success:
+        print(f"✗ {message}")
+        return 1
+
+    print(f"✓ {message}")
+
+    # Save accounts
+    persistence.save_accounts(auth_manager.get_all_accounts())
+    print(f"✓ Saved account data")
+
+    return 0
+
+
+def admin_list_games(args):
+    """List all game instances."""
+    from server.game_manager import get_game_manager
+
+    game_manager = get_game_manager()
+    games = game_manager.list_games()
+
+    print("=" * 80)
+    print(f"Game Instances ({len(games)} total)")
+    print("=" * 80)
+
+    for game in games:
+        print(f"\n{game.name}")
+        print(f"  ID: {game.id}")
+        print(f"  Status: {game.status}")
+        print(f"  Players: {len(game.players)}/{game.max_players}")
+        print(f"  Created by: {game.created_by}")
+
+        if args.detailed and len(game.players) > 0:
+            print(f"  Player list:")
+            for player_id, player in game.players.items():
+                print(f"    - {player.player_name} ({player.character_type})")
+
+    return 0
+
+
+def admin_force_start(args):
+    """Force-start a game."""
+    from server.game_manager import get_game_manager
+
+    game_manager = get_game_manager()
+    game = game_manager.get_game(args.game_id)
+
+    if not game:
+        print(f"✗ Game not found: {args.game_id}")
+        return 1
+
+    # Confirm
+    if not args.force:
+        response = input(f"Force-start game '{game.name}'? (yes/no): ")
+        if response.lower() not in ['yes', 'y']:
+            print("Cancelled.")
+            return 0
+
+    # Start game
+    try:
+        game.start_game()
+        print(f"✓ Game '{game.name}' started")
+        return 0
+    except Exception as e:
+        print(f"✗ Failed to start game: {e}")
+        return 1
+
+
+def admin_kick_player(args):
+    """Kick player from game."""
+    from server.game_manager import get_game_manager
+
+    game_manager = get_game_manager()
+    game = game_manager.get_game(args.game_id)
+
+    if not game:
+        print(f"✗ Game not found: {args.game_id}")
+        return 1
+
+    # Confirm
+    if not args.force:
+        response = input(f"Kick player '{args.player_id}' from game '{game.name}'? (yes/no): ")
+        if response.lower() not in ['yes', 'y']:
+            print("Cancelled.")
+            return 0
+
+    # Kick player
+    success, message = game.remove_player(args.player_id)
+
+    if not success:
+        print(f"✗ {message}")
+        return 1
+
+    print(f"✓ {message}")
+    return 0
+
+
+def admin_view_audit(args):
+    """View admin audit log."""
+    from server.admin.audit_logger import get_audit_logger
+
+    audit_logger = get_audit_logger()
+    entries = audit_logger.get_recent_actions(limit=args.limit)
+
+    if not entries:
+        print("No audit entries found.")
+        return 0
+
+    print("=" * 80)
+    print(f"Admin Audit Log ({len(entries)} most recent)")
+    print("=" * 80)
+
+    for i, entry in enumerate(entries, 1):
+        print(f"\n[Entry #{i}]")
+        print(f"  Timestamp: {entry['timestamp']}")
+        print(f"  Admin:     {entry['admin']}")
+        print(f"  Action:    {entry['action']}")
+        print(f"  Details:   {entry['details']}")
+        print("-" * 80)
+
+    print(f"\nTotal entries: {audit_logger.get_entry_count()}")
+    print(f"Audit file: {audit_logger.audit_file}")
+    print("=" * 80)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="StarWeb Game Management CLI",
@@ -366,6 +733,65 @@ def main():
     view_reports_parser = subparsers.add_parser('view-bug-reports', help='View recent bug reports from players')
     view_reports_parser.add_argument('--limit', type=int, default=20, help='Number of reports to show (default: 20)')
     view_reports_parser.set_defaults(func=view_bug_reports)
+
+    # bootstrap-admin command
+    bootstrap_parser = subparsers.add_parser('bootstrap-admin', help='Bootstrap first admin account')
+    bootstrap_parser.add_argument('--username', help='Admin username')
+    bootstrap_parser.add_argument('--password', help='Admin password')
+    bootstrap_parser.add_argument('--email', help='Admin email')
+    bootstrap_parser.set_defaults(func=bootstrap_admin)
+
+    # admin-list-users command
+    admin_list_users_parser = subparsers.add_parser('admin-list-users', help='List all user accounts')
+    admin_list_users_parser.set_defaults(func=admin_list_users)
+
+    # admin-create-user command
+    admin_create_user_parser = subparsers.add_parser('admin-create-user', help='Create a new user account')
+    admin_create_user_parser.add_argument('username', help='Username')
+    admin_create_user_parser.add_argument('password', help='Password')
+    admin_create_user_parser.add_argument('--email', help='Email address')
+    admin_create_user_parser.set_defaults(func=admin_create_user)
+
+    # admin-delete-user command
+    admin_delete_user_parser = subparsers.add_parser('admin-delete-user', help='Delete a user account')
+    admin_delete_user_parser.add_argument('username', help='Username to delete')
+    admin_delete_user_parser.add_argument('--force', action='store_true', help='Skip confirmation')
+    admin_delete_user_parser.set_defaults(func=admin_delete_user)
+
+    # admin-reset-password command
+    admin_reset_password_parser = subparsers.add_parser('admin-reset-password', help='Reset user password')
+    admin_reset_password_parser.add_argument('username', help='Username')
+    admin_reset_password_parser.add_argument('--password', help='New password (prompts if not provided)')
+    admin_reset_password_parser.set_defaults(func=admin_reset_password)
+
+    # admin-change-email command
+    admin_change_email_parser = subparsers.add_parser('admin-change-email', help='Change user email')
+    admin_change_email_parser.add_argument('username', help='Username')
+    admin_change_email_parser.add_argument('email', help='New email address')
+    admin_change_email_parser.set_defaults(func=admin_change_email)
+
+    # admin-list-games command
+    admin_list_games_parser = subparsers.add_parser('admin-list-games', help='List all game instances')
+    admin_list_games_parser.add_argument('--detailed', action='store_true', help='Show detailed info')
+    admin_list_games_parser.set_defaults(func=admin_list_games)
+
+    # admin-force-start command
+    admin_force_start_parser = subparsers.add_parser('admin-force-start', help='Force-start a game')
+    admin_force_start_parser.add_argument('game_id', help='Game ID')
+    admin_force_start_parser.add_argument('--force', action='store_true', help='Skip confirmation')
+    admin_force_start_parser.set_defaults(func=admin_force_start)
+
+    # admin-kick-player command
+    admin_kick_parser = subparsers.add_parser('admin-kick-player', help='Kick player from game')
+    admin_kick_parser.add_argument('game_id', help='Game ID')
+    admin_kick_parser.add_argument('player_id', help='Player ID or username')
+    admin_kick_parser.add_argument('--force', action='store_true', help='Skip confirmation')
+    admin_kick_parser.set_defaults(func=admin_kick_player)
+
+    # admin-view-audit command
+    admin_audit_parser = subparsers.add_parser('admin-view-audit', help='View admin audit log')
+    admin_audit_parser.add_argument('--limit', type=int, default=50, help='Number of entries to show (default: 50)')
+    admin_audit_parser.set_defaults(func=admin_view_audit)
 
     # reset-all command
     reset_all_parser = subparsers.add_parser('reset-all', help='Reset everything (game state, accounts, sessions, games)')

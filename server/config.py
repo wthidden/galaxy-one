@@ -94,6 +94,18 @@ class GameConfig:
     def character_settings(self) -> Dict[str, Any]:
         return self.get('characters', {})
 
+    @property
+    def admin_settings(self) -> Dict[str, Any]:
+        return self.get('admin', {})
+
+    @property
+    def admin_users(self) -> list:
+        return [u.lower() for u in self.get('admin.users', [])]
+
+    @property
+    def admin_enabled(self) -> bool:
+        return self.get('admin.enabled', True)
+
 
 # Singleton instance
 _config_instance: Optional[GameConfig] = None

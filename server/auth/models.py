@@ -52,6 +52,21 @@ class PlayerAccount:
         """Update last login timestamp to now."""
         self.last_login = datetime.now()
 
+    def is_admin(self, config=None) -> bool:
+        """
+        Check if this account has admin privileges.
+
+        Args:
+            config: Optional GameConfig instance (will be loaded if not provided)
+
+        Returns:
+            True if username is in admin list, False otherwise
+        """
+        if config is None:
+            from server.config import get_config
+            config = get_config()
+        return self.username.lower() in config.admin_users
+
 
 class Session:
     """Player session with authentication token."""

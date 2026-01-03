@@ -211,6 +211,28 @@ async def main():
     message_router.register_websocket_handler("ENTER_GAME", handle_enter_game)
     message_router.register_websocket_handler("LOBBY_CHAT", handle_lobby_chat)
 
+    # Admin handlers (websocket-level, require admin auth)
+    from .admin.admin_handlers import (
+        handle_admin_list_users,
+        handle_admin_create_user,
+        handle_admin_delete_user,
+        handle_admin_reset_password,
+        handle_admin_list_games,
+        handle_admin_force_start_game,
+        handle_admin_kick_player,
+        handle_admin_broadcast,
+        handle_admin_view_audit
+    )
+    message_router.register_websocket_handler("ADMIN_LIST_USERS", handle_admin_list_users)
+    message_router.register_websocket_handler("ADMIN_CREATE_USER", handle_admin_create_user)
+    message_router.register_websocket_handler("ADMIN_DELETE_USER", handle_admin_delete_user)
+    message_router.register_websocket_handler("ADMIN_RESET_PASSWORD", handle_admin_reset_password)
+    message_router.register_websocket_handler("ADMIN_LIST_GAMES", handle_admin_list_games)
+    message_router.register_websocket_handler("ADMIN_FORCE_START_GAME", handle_admin_force_start_game)
+    message_router.register_websocket_handler("ADMIN_KICK_PLAYER", handle_admin_kick_player)
+    message_router.register_websocket_handler("ADMIN_BROADCAST", handle_admin_broadcast)
+    message_router.register_websocket_handler("ADMIN_VIEW_AUDIT", handle_admin_view_audit)
+
     # Game handlers (player-level, require game membership)
     message_router.register_handler("command", handle_command_message)
 

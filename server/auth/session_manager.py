@@ -87,6 +87,27 @@ class SessionManager:
                 del self._player_sessions[player_id]
             logger.info(f"Invalidated session for player {player_id}")
 
+    def invalidate_all_for_player(self, player_id: str):
+        """
+        Invalidate all sessions for a specific player.
+        Used when deleting accounts or resetting passwords.
+
+        Args:
+            player_id: Player ID whose sessions should be invalidated
+        """
+        tokens_to_remove = [
+            token for token, session in self._sessions.items()
+            if session.player_id == player_id
+        ]
+        for token in tokens_to_remove:
+            del self._sessions[token]
+
+        if player_id in self._player_sessions:
+            del self._player_sessions[player_id]
+
+        if tokens_to_remove:
+            logger.info(f"Invalidated {len(tokens_to_remove)} sessions for player {player_id}")
+
     def cleanup_expired_sessions(self):
         """Remove all expired sessions."""
         expired_tokens = [

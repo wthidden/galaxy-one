@@ -156,3 +156,15 @@ characters:
 
   "Apostle":
     conversion_rate: 0.1  # 10% chance per ship
+
+# Admin settings
+admin:
+  # List of admin usernames (case-insensitive)
+  users:
+    - admin
+
+  # Enable/disable admin features
+  enabled: true
+
+  # Audit log location
+  audit_log: "data/admin_audit.jsonl"

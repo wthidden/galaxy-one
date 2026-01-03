@@ -176,6 +176,78 @@ class AuthManager:
 
         logger.info(f"Loaded {len(self._accounts)} player accounts")
 
+    def delete_account(self, username: str) -> Tuple[bool, str]:
+        """
+        Delete a player account (admin only).
+
+        Args:
+            username: Username to delete
+
+        Returns:
+            (success, message)
+        """
+        account = self.get_account(username)
+        if not account:
+            return False, "Account not found"
+
+        # Remove from both dictionaries
+        del self._accounts[username]
+        del self._accounts_by_id[account.id]
+
+        # Invalidate all sessions for this player
+        self.session_manager.invalidate_all_for_player(account.id)
+
+        logger.info(f"Account deleted: {username} (ID: {account.id})")
+        return True, f"Account '{username}' deleted"
+
+    def reset_password(self, username: str, new_password: str) -> Tuple[bool, str]:
+        """
+        Reset account password (admin only).
+
+        Args:
+            username: Username
+            new_password: New plain text password
+
+        Returns:
+            (success, message)
+        """
+        account = self.get_account(username)
+        if not account:
+            return False, "Account not found"
+
+        # Validate new password
+        valid, error = validate_password(new_password)
+        if not valid:
+            return False, error
+
+        # Update password
+        account.password_hash = hash_password(new_password)
+
+        # Invalidate all sessions (force re-login)
+        self.session_manager.invalidate_all_for_player(account.id)
+
+        logger.info(f"Password reset for: {username}")
+        return True, f"Password reset for '{username}'"
+
+    def change_email(self, username: str, new_email: str) -> Tuple[bool, str]:
+        """
+        Change account email (admin only).
+
+        Args:
+            username: Username
+            new_email: New email address
+
+        Returns:
+            (success, message)
+        """
+        account = self.get_account(username)
+        if not account:
+            return False, "Account not found"
+
+        account.email = new_email
+        logger.info(f"Email changed for: {username}")
+        return True, f"Email updated for '{username}'"
+
 
 # Global auth manager instance
 _auth_manager: Optional[AuthManager] = None
